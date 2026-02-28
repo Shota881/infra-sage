@@ -233,8 +233,12 @@ svg.big-chart{width:100%;height:145px}
 .n-imp{font-size:11px;color:var(--t2);line-height:1.6;padding-top:6px;border-top:1px solid var(--bd)}
 .n-foot{display:flex;justify-content:space-between;margin-top:7px}
 .n-src{font-size:9px;color:var(--t3);font-family:var(--f-mo)}
-.n-link{font-size:9px;font-family:var(--f-mo);color:var(--cyan);text-decoration:none;padding:2px 7px;border:1px solid rgba(0,200,212,.3);border-radius:8px;letter-spacing:1px;white-space:nowrap}
+.n-link{font-size:9px;font-family:var(--f-mo);color:var(--cyan);text-decoration:none;padding:2px 7px;border:1px solid rgba(0,200,212,.3);border-radius:8px;letter-spacing:1px;white-space:nowrap;background:none;cursor:pointer}
 .n-link:hover{background:var(--cyan-d)}
+.news-menu-head{font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.news-menu-btn{width:100%;border-radius:11px;padding:13px 16px;font-family:var(--f-mo);font-size:11px;letter-spacing:1px;cursor:pointer;text-align:left;text-decoration:none;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.news-menu-btn.app{background:var(--s3);border:1px solid var(--bd2);color:var(--text)}
+.news-menu-btn.web{background:none;border:1px solid var(--bd);color:var(--t2)}
 .n-sen{font-size:9px;font-family:var(--f-mo);padding:2px 8px;border-radius:10px}
 .n-sen.pos{background:var(--green-d);color:var(--green)}
 .n-sen.neg{background:var(--red-d);color:var(--red)}
@@ -625,6 +629,7 @@ function App(){
   const [loadingTickers,setLoadingTickers]=useState({});
   const [priceLoading,setPriceLoading]=useState({});
   const [allPriceLoading,setAllPriceLoading]=useState(false);
+  const [newsLinkMenu,setNewsLinkMenu]=useState(null);
 
   // Persist to localStorage
   useEffect(()=>{try{localStorage.setItem('infrasage_stocks',JSON.stringify(stocks));}catch{}},[stocks]);
@@ -881,6 +886,13 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
     showToast(`✓ ${ok}銘柄を更新${fail>0?` / ${fail}件取得失敗`:''}`);
   };
 
+  const openNewsLink=(n)=>{
+    const src=n.src||'';
+    const isNikkei=src.includes('日経')||src.toLowerCase().includes('nikkei');
+    if(isNikkei){setNewsLinkMenu(n);}
+    else{window.open(getNewsUrl(n),'_blank','noopener,noreferrer');}
+  };
+
   const deleteStock=(ticker)=>{
     setStocks(p=>p.filter(s=>s.ticker!==ticker));
     if(detail?.ticker===ticker) setDetail(null);
@@ -1117,7 +1129,7 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                   <span className="n-src">{n.src} · {n.time}</span>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':n.sent==='neg'?'▼悪材料':'●中立'}</span>
-                    <a className="n-link" href={getNewsUrl(n)} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                    <button className="n-link" onClick={()=>openNewsLink(n)}>🔗 検索</button>
                   </div>
                 </div>
               </div>
@@ -1280,7 +1292,7 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                     <span className="n-src">{n.src} · {n.time}</span>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':'▼悪材料'}</span>
-                      <a className="n-link" href={getNewsUrl(n)} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                      <button className="n-link" onClick={()=>openNewsLink(n)}>🔗 検索</button>
                     </div>
                   </div>
                 </div>
@@ -1313,6 +1325,38 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
               <button className="api-save-btn" onClick={saveApiKey}>保存する</button>
               <button className="api-clear-btn" onClick={()=>{localStorage.removeItem('infrasage_apikey');setApiKey('');setApiKeyInput('');setShowApiModal(false);showToast('APIキーをクリアしました');}}>クリア</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEWS LINK MENU */}
+      {newsLinkMenu&&(
+        <div className="modal-bg" onClick={()=>setNewsLinkMenu(null)}>
+          <div className="modal" style={{paddingBottom:32}}>
+            <div className="modal-hd">
+              <div className="modal-t" style={{margin:0}}>🗞 記事を開く</div>
+              <button className="modal-close" onClick={()=>setNewsLinkMenu(null)}>×</button>
+            </div>
+            <div className="news-menu-head">{newsLinkMenu.head}</div>
+            <a className="news-menu-btn app"
+              href={`https://www.nikkei.com/search?keyword=${encodeURIComponent(newsLinkMenu.head)}`}
+              onClick={()=>setNewsLinkMenu(null)}>
+              <span style={{fontSize:20}}>📱</span>
+              <div>
+                <div>日経アプリで開く</div>
+                <div style={{fontSize:9,color:'var(--t3)',marginTop:2,letterSpacing:0}}>アプリがインストール済みの場合、アプリが起動します</div>
+              </div>
+            </a>
+            <a className="news-menu-btn web"
+              href={`https://www.nikkei.com/search?keyword=${encodeURIComponent(newsLinkMenu.head)}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={()=>setNewsLinkMenu(null)}>
+              <span style={{fontSize:20}}>🌐</span>
+              <div>
+                <div>Safariで開く</div>
+                <div style={{fontSize:9,color:'var(--t3)',marginTop:2,letterSpacing:0}}>ブラウザで日経サイトを開きます</div>
+              </div>
+            </a>
           </div>
         </div>
       )}
