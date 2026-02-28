@@ -233,6 +233,8 @@ svg.big-chart{width:100%;height:145px}
 .n-imp{font-size:11px;color:var(--t2);line-height:1.6;padding-top:6px;border-top:1px solid var(--bd)}
 .n-foot{display:flex;justify-content:space-between;margin-top:7px}
 .n-src{font-size:9px;color:var(--t3);font-family:var(--f-mo)}
+.n-link{font-size:9px;font-family:var(--f-mo);color:var(--cyan);text-decoration:none;padding:2px 7px;border:1px solid rgba(0,200,212,.3);border-radius:8px;letter-spacing:1px;white-space:nowrap}
+.n-link:hover{background:var(--cyan-d)}
 .n-sen{font-size:9px;font-family:var(--f-mo);padding:2px 8px;border-radius:10px}
 .n-sen.pos{background:var(--green-d);color:var(--green)}
 .n-sen.neg{background:var(--red-d);color:var(--red)}
@@ -1093,7 +1095,10 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                 <div className="np-ai"><span style={{fontFamily:'var(--f-mo)',fontSize:9,color:'var(--t3)',letterSpacing:1}}>株価影響 ▸ </span>{n.impact}</div>
                 <div className="np-foot">
                   <span className="n-src">{n.src} · {n.time}</span>
-                  <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':n.sent==='neg'?'▼悪材料':'●中立'}</span>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':n.sent==='neg'?'▼悪材料':'●中立'}</span>
+                    <a className="n-link" href={`https://news.google.com/search?q=${encodeURIComponent(n.head+' '+n.src)}&hl=ja&gl=JP&ceid=JP:ja`} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1253,7 +1258,10 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                   <div className="n-imp"><span style={{fontFamily:'var(--f-mo)',fontSize:9,color:'var(--t3)',letterSpacing:1}}>株価影響 ▸ </span>{n.impact}</div>
                   <div className="n-foot">
                     <span className="n-src">{n.src} · {n.time}</span>
-                    <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':'▼悪材料'}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':'▼悪材料'}</span>
+                      <a className="n-link" href={`https://news.google.com/search?q=${encodeURIComponent(n.head+' '+n.src)}&hl=ja&gl=JP&ceid=JP:ja`} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                    </div>
                   </div>
                 </div>
               ))}
