@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>INFRA SAGE v3 — インフラ株AI顧問</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;700;900&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#06080b;--s1:#0b0f15;--s2:#10161f;--s3:#151d2a;
+  --bd:#1c2836;--bd2:#243245;
+  --text:#dde8f5;--t2:#6888a8;--t3:#324558;
+  --cyan:#00c8d4;--cyan-d:rgba(0,200,212,.13);
+  --amber:#e8a020;--amber-d:rgba(232,160,32,.12);
+  --red:#e05555;--red-d:rgba(224,85,85,.13);
+  --green:#28d478;--green-d:rgba(40,212,120,.13);
+  --purple:#a060f0;--purple-d:rgba(160,96,240,.12);
+  --f-jp:'Zen Kaku Gothic New',sans-serif;
+  --f-mo:'IBM Plex Mono',monospace;
+}
+html,body,#root{height:100%;background:var(--bg)}
+body{font-family:var(--f-jp);color:var(--text);overflow:hidden}
+.app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+
+/* HEADER */
+.hdr{padding:13px 18px 10px;background:rgba(6,8,11,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:60}
+.hdr-brand{display:flex;align-items:center;gap:9px}
+.hdr-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#091828,#122040);border:1px solid rgba(0,200,212,.5);display:flex;align-items:center;justify-content:center;font-size:15px}
+.hdr-name{font-family:var(--f-mo);font-size:14px;font-weight:500;color:var(--cyan);letter-spacing:2px}
+.hdr-sub{font-size:9px;color:var(--t3);letter-spacing:2px}
+.hdr-r{display:flex;align-items:center;gap:6px;font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:1px}
+.live{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* TICKER */
+.tape{background:var(--s1);border-bottom:1px solid var(--bd);padding:6px 0;overflow:hidden}
+.tape-in{display:flex;gap:28px;white-space:nowrap;animation:scroll 28s linear infinite}
+.tape-in:hover{animation-play-state:paused}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mo);font-size:10px}
+.ti-s{color:var(--cyan);font-weight:500}.ti-p{color:var(--text)}.ti-c{font-size:9px}
+.ti-c.up{color:var(--green)}.ti-c.dn{color:var(--red)}
+
+/* PAGE */
+.page{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:68px}
+.page::-webkit-scrollbar{width:2px}
+.page::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* NAV */
+.nav{position:sticky;bottom:0;background:rgba(6,8,11,.97);backdrop-filter:blur(20px);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,6px)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0;cursor:pointer;border:none;background:none;color:var(--t3);font-family:var(--f-jp);font-size:9px;letter-spacing:1px;transition:color .2s;position:relative}
+.nb.on{color:var(--cyan)}
+.nb-ico{font-size:17px}
+.nb-badge{position:absolute;top:7px;right:calc(50% - 14px);background:var(--red);color:#fff;border-radius:10px;font-size:8px;font-family:var(--f-mo);padding:1px 5px;min-width:16px;text-align:center}
+
+/* SECTION HEADER */
+.sec-hd{padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between}
+.sec-ttl{font-family:var(--f-mo);font-size:10px;letter-spacing:3px;color:var(--t2);text-transform:uppercase}
+.sec-sub{font-family:var(--f-mo);font-size:9px;color:var(--t3)}
+
+/* SUMMARY BANNER */
+.banner{margin:14px 18px 10px;background:linear-gradient(120deg,#060e1c,#091525);border:1px solid rgba(0,200,212,.18);border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.banner::after{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,212,.06) 0%,transparent 70%)}
+.bn-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bn-i .bn-l{font-family:var(--f-mo);font-size:8px;color:var(--t3);letter-spacing:2px;margin-bottom:4px}
+.bn-i .bn-v{font-family:var(--f-mo);font-size:15px;font-weight:500}
+.bn-v.c{color:var(--cyan)}.bn-v.g{color:var(--green)}.bn-v.a{color:var(--amber)}.bn-v.r{color:var(--red)}
+
+/* SECTOR FILTER */
+.sf{padding:4px 18px 10px;display:flex;gap:7px;overflow-x:auto}
+.sf::-webkit-scrollbar{display:none}
+.sc{flex-shrink:0;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 13px;font-size:11px;font-family:var(--f-mo);color:var(--t2);cursor:pointer;letter-spacing:1px;transition:all .2s;white-space:nowrap}
+.sc.on{background:var(--cyan-d);border-color:rgba(0,200,212,.4);color:var(--cyan)}
+
+/* ===== STOCK CARD ===== */
+.cards{padding:0 18px;display:flex;flex-direction:column;gap:10px}
+
+.card{
+  background:var(--s1);border:1px solid var(--bd);border-radius:14px;
+  cursor:pointer;transition:all .2s;overflow:hidden;
+  /* NO position:relative so signal bar can be positioned */
+  position:relative;
+}
+.card:active{transform:scale(.985)}
+.card.featured{border-color:rgba(0,200,212,.2);background:linear-gradient(135deg,#0b1828,#060f1c)}
+
+/* Left accent bar */
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.card.s-buy::before{background:var(--green)}
+.card.s-hold::before{background:var(--amber)}
+.card.s-watch::before{background:var(--cyan)}
+.card.s-sell::before{background:var(--red)}
+
+/* ── BUY SIGNAL BANNER (top of card) ── */
+.sig-banner{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 8px 14px;
+  border-bottom:1px solid var(--bd);
+}
+.sig-left{display:flex;align-items:center;gap:8px}
+.sig-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.s-buy .sig-dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+.s-hold .sig-dot{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.s-watch .sig-dot{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.s-sell .sig-dot{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+.sig-word{font-family:var(--f-mo);font-size:12px;font-weight:500;letter-spacing:2px}
+.s-buy .sig-word{color:var(--green)}
+.s-hold .sig-word{color:var(--amber)}
+.s-watch .sig-word{color:var(--cyan)}
+.s-sell .sig-word{color:var(--red)}
+
+.sig-reason-short{font-size:10px;color:var(--t2);line-height:1.4;max-width:220px}
+
+/* ── Card body ── */
+.card-body{padding:10px 14px 12px}
+.card-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.cl{display:flex;align-items:center;gap:9px}
+.c-ico{width:36px;height:36px;border-radius:9px;background:var(--s2);border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:17px}
+.c-tic{font-family:var(--f-mo);font-size:14px;font-weight:500;margin-bottom:1px}
+.c-nm{font-size:10px;color:var(--t3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr{text-align:right}
+.c-pr{font-family:var(--f-mo);font-size:16px;margin-bottom:3px}
+.c-ch{font-family:var(--f-mo);font-size:11px}
+.c-ch.up{color:var(--green)}.c-ch.dn{color:var(--red)}
+
+.spark-w{height:28px;margin-bottom:8px}
+svg.spark{width:100%;height:100%}
+
+.c-meta{display:flex;gap:12px}
+.cm{font-size:10px;color:var(--t3);font-family:var(--f-mo)}
+.cm span{color:var(--t2)}
+
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:9px;font-family:var(--f-mo);letter-spacing:1px;padding:2px 8px;border-radius:4px;background:var(--s3);border:1px solid var(--bd2);color:var(--t2)}
+
+/* ── Tap hint ── */
+.tap-hint{text-align:center;padding:4px 0 0;font-size:9px;color:var(--t3);font-family:var(--f-mo);letter-spacing:1px;border-top:1px solid var(--bd)}
+
+/* ADD BUTTON */
+.add-btn{margin:12px 18px 0;width:calc(100% - 36px);background:none;border:1px dashed var(--bd2);border-radius:12px;padding:12px;color:var(--t3);font-family:var(--f-mo);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:2px}
+
+/* ===== DETAIL ===== */
+.detail{position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-width:430px;margin:0 auto}
+.detail.open{transform:translateY(0)}
+.det-hdr{padding:13px 18px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:rgba(6,8,11,.97);backdrop-filter:blur(16px);z-index:10}
+.back{width:33px;height:33px;border-radius:9px;background:var(--s2);border:1px solid var(--bd);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+.det-t{font-family:var(--f-mo);font-size:15px;font-weight:500}
+.det-st{font-size:10px;color:var(--t3);letter-spacing:1px}
+
+.chart-zone{padding:18px 18px 0}
+.big-p{font-family:var(--f-mo);font-size:36px;font-weight:300;letter-spacing:-1px;margin-bottom:4px}
+.big-c{font-family:var(--f-mo);font-size:13px;margin-bottom:16px}
+.big-c.up{color:var(--green)}.big-c.dn{color:var(--red)}
+.period-row{display:flex;gap:5px;margin-bottom:13px}
+.per{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:6px 0;font-family:var(--f-mo);font-size:10px;color:var(--t3);cursor:pointer;transition:all .15s;letter-spacing:1px}
+.per.on{background:var(--cyan-d);border-color:rgba(0,200,212,.4);color:var(--cyan)}
+svg.big-chart{width:100%;height:145px}
+
+/* VERDICT BOX (big buy/hold/sell in detail) */
+.verdict{margin:0 18px 14px;border-radius:14px;padding:18px}
+.verdict.buy{background:var(--green-d);border:1px solid rgba(40,212,120,.3)}
+.verdict.hold{background:var(--amber-d);border:1px solid rgba(232,160,32,.3)}
+.verdict.watch{background:var(--cyan-d);border:1px solid rgba(0,200,212,.3)}
+.verdict.sell{background:var(--red-d);border:1px solid rgba(224,85,85,.3)}
+.vd-top{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.vd-word{font-family:var(--f-mo);font-size:30px;font-weight:500;letter-spacing:3px}
+.verdict.buy .vd-word{color:var(--green)}
+.verdict.hold .vd-word{color:var(--amber)}
+.verdict.watch .vd-word{color:var(--cyan)}
+.verdict.sell .vd-word{color:var(--red)}
+.vd-score-wrap{display:flex;flex-direction:column;gap:4px}
+.vd-score-label{font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:2px}
+.vd-score-bar{height:4px;width:80px;background:var(--s3);border-radius:4px;overflow:hidden}
+.vd-score-fill{height:100%;border-radius:4px}
+.verdict.buy .vd-score-fill{background:var(--green)}
+.verdict.hold .vd-score-fill{background:var(--amber)}
+.verdict.watch .vd-score-fill{background:var(--cyan)}
+.verdict.sell .vd-score-fill{background:var(--red)}
+.vd-reason{font-size:12px;color:var(--t2);line-height:1.8}
+
+/* AI CARD */
+.ai-card{margin:0 18px 14px;background:linear-gradient(135deg,#07101c,#04090f);border:1px solid rgba(0,200,212,.2);border-radius:14px;padding:18px}
+.ai-hdr{display:flex;align-items:center;gap:9px;margin-bottom:12px;justify-content:space-between}
+.ai-hdr-l{display:flex;align-items:center;gap:9px}
+.ai-refresh-btn{background:var(--cyan-d);border:1px solid rgba(0,200,212,.3);border-radius:7px;padding:5px 10px;color:var(--cyan);font-family:var(--f-mo);font-size:9px;cursor:pointer;letter-spacing:1px;white-space:nowrap;transition:background .15s}
+.ai-refresh-btn:active{background:rgba(0,200,212,.25)}
+.ai-refresh-btn:disabled{opacity:.4;cursor:not-allowed}
+.ai-icon{width:28px;height:28px;border-radius:7px;background:var(--cyan-d);border:1px solid rgba(0,200,212,.3);display:flex;align-items:center;justify-content:center;font-size:13px}
+.ai-lbl{font-family:var(--f-mo);font-size:10px;color:var(--cyan);letter-spacing:2px}
+.ai-body{font-size:13px;line-height:1.9;color:var(--t2)}
+.loading{display:flex;align-items:center;gap:8px;color:var(--t3);font-size:11px;font-family:var(--f-mo)}
+.dots{display:flex;gap:3px}
+.dots span{width:4px;height:4px;background:var(--cyan);border-radius:50%;animation:dp 1.2s ease infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ENTRY BOX */
+.entry-box{margin:0 18px 14px;background:var(--s2);border:1px solid var(--bd2);border-radius:13px;padding:15px}
+.entry-title{font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:12px;text-transform:uppercase}
+.entry-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.entry-label{font-size:12px;color:var(--t2)}
+.entry-val{font-family:var(--f-mo);font-size:14px}
+.ev-buy{color:var(--green)}.ev-target{color:var(--cyan)}.ev-stop{color:var(--red)}
+.rr-bar{height:3px;background:var(--s3);border-radius:3px;overflow:hidden;margin-top:4px}
+.rr-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:3px}
+.rr-note{text-align:right;font-family:var(--f-mo);font-size:9px;color:var(--t3);margin-top:4px}
+
+/* CATALYSTS */
+.cat-box{margin:0 18px 14px}
+.box-ttl{font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:10px;text-transform:uppercase}
+.cat-item{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;gap:10px}
+.cat-ico{font-size:15px;flex-shrink:0;margin-top:1px}
+.cat-t{font-size:12px;color:var(--t2);line-height:1.7}
+.cat-dir{font-size:10px;font-family:var(--f-mo);letter-spacing:1px;margin-top:2px}
+.cat-dir.up{color:var(--green)}.cat-dir.dn{color:var(--red)}.cat-dir.neu{color:var(--amber)}
+
+/* METRICS */
+.metrics{margin:0 18px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mc{background:var(--s2);border:1px solid var(--bd);border-radius:11px;padding:12px}
+.ml{font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:2px;margin-bottom:5px}
+.mv{font-family:var(--f-mo);font-size:15px}
+.mv.g{color:var(--green)}.mv.r{color:var(--red)}.mv.a{color:var(--amber)}.mv.c{color:var(--cyan)}
+
+/* NEWS in detail */
+.det-news{padding:0 18px;margin-bottom:24px}
+.n-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:13px;margin-bottom:8px}
+.n-head{font-size:13px;font-weight:500;line-height:1.5;margin-bottom:6px}
+.n-imp{font-size:11px;color:var(--t2);line-height:1.6;padding-top:6px;border-top:1px solid var(--bd)}
+.n-foot{display:flex;justify-content:space-between;margin-top:7px}
+.n-src{font-size:9px;color:var(--t3);font-family:var(--f-mo)}
+.n-sen{font-size:9px;font-family:var(--f-mo);padding:2px 8px;border-radius:10px}
+.n-sen.pos{background:var(--green-d);color:var(--green)}
+.n-sen.neg{background:var(--red-d);color:var(--red)}
+.n-sen.neu{background:var(--cyan-d);color:var(--cyan)}
+
+/* ===== AI RECOMMEND TAB ===== */
+.reco-banner{
+  margin:14px 18px 10px;
+  background:linear-gradient(120deg,#0a0820,#100530);
+  border:1px solid rgba(160,96,240,.25);border-radius:14px;padding:18px;
+  position:relative;overflow:hidden;
+}
+.reco-banner::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(160,96,240,.08) 0%,transparent 70%)}
+.reco-banner-title{font-family:var(--f-mo);font-size:11px;color:var(--purple);letter-spacing:3px;margin-bottom:6px}
+.reco-banner-body{font-size:12px;color:var(--t2);line-height:1.7}
+.reco-refresh{
+  margin-top:12px;background:var(--purple-d);border:1px solid rgba(160,96,240,.35);
+  border-radius:9px;padding:9px 16px;
+  font-family:var(--f-mo);font-size:11px;color:var(--purple);letter-spacing:2px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;
+}
+
+/* RECO CARD */
+.reco-cards{padding:0 18px;display:flex;flex-direction:column;gap:12px}
+.reco-card{
+  background:linear-gradient(135deg,#0c1020,#081028);
+  border:1px solid rgba(160,96,240,.2);border-radius:14px;overflow:hidden;
+  transition:transform .2s;
+}
+.reco-card:active{transform:scale(.98)}
+
+.reco-header{
+  padding:12px 14px 10px;
+  background:linear-gradient(90deg,rgba(160,96,240,.08),transparent);
+  border-bottom:1px solid rgba(160,96,240,.12);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.reco-hl{display:flex;align-items:center;gap:9px}
+.reco-ico{width:36px;height:36px;border-radius:9px;background:var(--purple-d);border:1px solid rgba(160,96,240,.25);display:flex;align-items:center;justify-content:center;font-size:17px}
+.reco-tick{font-family:var(--f-mo);font-size:14px;font-weight:500;margin-bottom:1px}
+.reco-nm{font-size:10px;color:var(--t3)}
+.reco-sig{font-family:var(--f-mo);font-size:11px;letter-spacing:2px;padding:4px 10px;border-radius:20px}
+.reco-sig.buy{background:var(--green-d);color:var(--green);border:1px solid rgba(40,212,120,.3)}
+.reco-sig.watch{background:var(--cyan-d);color:var(--cyan);border:1px solid rgba(0,200,212,.3)}
+.reco-sig.hold{background:var(--amber-d);color:var(--amber);border:1px solid rgba(232,160,32,.3)}
+
+.reco-body{padding:12px 14px}
+.reco-why-label{font-family:var(--f-mo);font-size:9px;color:var(--purple);letter-spacing:2px;margin-bottom:6px}
+.reco-why{font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:10px}
+.reco-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.rm-item{font-size:10px;color:var(--t3);font-family:var(--f-mo)}
+.rm-item span{color:var(--t2)}
+.reco-themes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.reco-theme{font-size:9px;font-family:var(--f-mo);padding:2px 8px;border-radius:4px;background:var(--purple-d);border:1px solid rgba(160,96,240,.2);color:rgba(160,96,240,.8);letter-spacing:1px}
+
+.reco-entry{
+  background:rgba(0,0,0,.2);border:1px solid rgba(160,96,240,.12);border-radius:9px;
+  padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
+}
+.re-item .re-l{font-family:var(--f-mo);font-size:8px;color:var(--t3);letter-spacing:2px;margin-bottom:3px}
+.re-item .re-v{font-family:var(--f-mo);font-size:12px}
+.re-v.g{color:var(--green)}.re-v.c{color:var(--cyan)}.re-v.r{color:var(--red)}
+
+.reco-add-btn{
+  margin-top:10px;width:100%;background:var(--purple-d);border:1px solid rgba(160,96,240,.3);
+  border-radius:9px;padding:10px;font-family:var(--f-mo);font-size:11px;color:var(--purple);
+  letter-spacing:2px;cursor:pointer;
+}
+
+/* NEWS PAGE */
+.news-page{padding:0 18px}
+.np-card{background:var(--s1);border:1px solid var(--bd);border-radius:13px;padding:15px;margin-bottom:10px}
+.np-sec{font-family:var(--f-mo);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:5px}
+.np-head{font-size:14px;font-weight:500;line-height:1.5;margin-bottom:7px}
+.np-ai{font-size:11px;color:var(--t2);line-height:1.7;padding-top:7px;border-top:1px solid var(--bd)}
+.np-foot{display:flex;justify-content:space-between;margin-top:7px}
+
+/* MACRO PAGE */
+.macro-page{padding:0 18px}
+.ind-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ind-c{background:var(--s1);border:1px solid var(--bd);border-radius:11px;padding:12px}
+.ind-l{font-family:var(--f-mo);font-size:9px;color:var(--t3);letter-spacing:2px;margin-bottom:4px}
+.ind-v{font-family:var(--f-mo);font-size:15px}
+.macro-c{background:var(--s1);border:1px solid var(--bd);border-radius:13px;padding:15px;margin-bottom:10px}
+.macro-t{font-family:var(--f-mo);font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:8px}
+.macro-b{font-size:12px;color:var(--t2);line-height:1.9}
+
+/* ADD MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);z-index:300;display:flex;align-items:flex-end;max-width:430px;margin:0 auto}
+.modal{background:var(--s2);border:1px solid var(--bd2);border-radius:20px 20px 0 0;padding:22px 18px 40px;width:100%}
+.modal-t{font-family:var(--f-mo);font-size:13px;letter-spacing:2px;color:var(--cyan);margin-bottom:14px}
+.m-inp{width:100%;background:var(--s1);border:1px solid var(--bd2);border-radius:11px;padding:13px 14px;color:var(--text);font-family:var(--f-mo);font-size:14px;outline:none;margin-bottom:11px;letter-spacing:1px}
+.m-inp:focus{border-color:var(--cyan)}.m-inp::placeholder{color:var(--t3)}
+.pre-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.pre{background:var(--s1);border:1px solid var(--bd2);border-radius:20px;padding:5px 12px;font-family:var(--f-mo);font-size:11px;color:var(--t2);cursor:pointer}
+.pre:active{background:var(--cyan-d);color:var(--cyan);border-color:rgba(0,200,212,.4)}
+.m-btn{width:100%;background:linear-gradient(135deg,#00a0aa,var(--cyan));border:none;border-radius:11px;padding:14px;color:#031518;font-family:var(--f-mo);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:3px}
+
+.fade-in{animation:fi .35s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.disclaimer{text-align:center;padding:5px;font-size:9px;color:var(--t3);font-family:var(--f-mo);letter-spacing:1px;background:var(--bg)}
+
+/* TOAST */
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--bd2);border-radius:9px;padding:10px 20px;font-family:var(--f-mo);font-size:12px;color:var(--text);z-index:500;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* API KEY MODAL */
+.api-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;max-width:430px;margin:0 auto}
+.api-modal{background:var(--s2);border:1px solid var(--bd2);border-radius:16px;padding:24px 20px;width:100%;max-width:390px}
+.api-modal-t{font-family:var(--f-mo);font-size:13px;letter-spacing:2px;color:var(--cyan);margin-bottom:6px}
+.api-modal-sub{font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:14px}
+.api-modal-warn{font-size:10px;color:var(--amber);background:var(--amber-d);border:1px solid rgba(232,160,32,.25);border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
+.api-key-inp{width:100%;background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--f-mo);font-size:12px;outline:none;margin-bottom:12px;letter-spacing:1px}
+.api-key-inp:focus{border-color:var(--cyan)}.api-key-inp::placeholder{color:var(--t3)}
+.api-btns{display:flex;gap:8px}
+.api-save-btn{flex:1;background:linear-gradient(135deg,#00a0aa,var(--cyan));border:none;border-radius:9px;padding:12px;color:#031518;font-family:var(--f-mo);font-size:11px;font-weight:500;cursor:pointer;letter-spacing:2px}
+.api-clear-btn{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:12px 16px;color:var(--t2);font-family:var(--f-mo);font-size:11px;cursor:pointer}
+.settings-btn{width:32px;height:32px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:border-color .2s}
+.settings-btn:hover{border-color:var(--cyan)}
+.key-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.key-dot.set{background:var(--green)}.key-dot.unset{background:var(--red)}
+
+/* PRICE REFRESH BUTTONS */
+.price-refresh-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:3px 5px;border-radius:5px;line-height:1;transition:color .15s;flex-shrink:0}
+.price-refresh-btn:hover{color:var(--cyan)}.price-refresh-btn:disabled{opacity:.35;cursor:not-allowed}
+.refresh-all-btn{width:100%;background:none;border:1px solid var(--bd2);border-radius:9px;padding:9px;color:var(--t2);font-family:var(--f-mo);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:1px;margin-top:10px;transition:all .2s}
+.refresh-all-btn:hover{border-color:var(--cyan);color:var(--cyan)}.refresh-all-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* DELETE BUTTON (on card) */
+.del-btn{width:26px;height:26px;border-radius:7px;background:var(--red-d);border:1px solid rgba(224,85,85,.3);color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:background .15s;line-height:1}
+.del-btn:active{background:rgba(224,85,85,.35)}
+
+/* MODAL HEADER (title + close btn) */
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-close{width:30px;height:30px;border-radius:8px;background:var(--s1);border:1px solid var(--bd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:border-color .2s}
+.modal-close:hover{border-color:var(--t2)}
+
+/* DELETE BUTTON (in detail header) */
+.det-del-btn{margin-left:auto;background:var(--red-d);border:1px solid rgba(224,85,85,.3);border-radius:9px;padding:6px 12px;color:var(--red);font-family:var(--f-mo);font-size:10px;cursor:pointer;letter-spacing:1px;white-space:nowrap;transition:background .15s}
+.det-del-btn:active{background:rgba(224,85,85,.3)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+/* ─────────────── DATA ─────────────── */
+const STOCKS=[
+  {ticker:'6501',name:'日立製作所',co:'Hitachi, Ltd.',emoji:'⚙️',exchange:'東証PR',sector:'重電・IT',signal:'buy',score:82,
+   price:3824,change:+67,pct:+1.78,vol:'8.2M',pe:'22.4',mktcap:'18.4兆',div:'0.9%',
+   tags:['デジタル変革','エネルギー管理','鉄道'],
+   hist:[3100,3180,3240,3300,3280,3350,3420,3500,3580,3650,3700,3750,3800,3824],
+   entry:{buy:3600,stop:3350,target:4200},
+   signal_reason:'グローバルIT需要×電力インフラ投資の二重恩恵。押し目買いの好機。',
+   short_reason:'IT×電力インフラ需要が加速。押し目が買い場。',
+   catalysts:[
+     {ico:'🌐',text:'欧米DX投資取込。Lumerada/GlobalLogicの収益貢献が拡大中',dir:'up'},
+     {ico:'🚆',text:'英国鉄道信号システム受注複数件が進行中。高マージン事業',dir:'up'},
+     {ico:'⚡',text:'電力網老朽化更新投資が追い風。欧日ともに需要旺盛',dir:'up'},
+     {ico:'⚠️',text:'中国事業縮小の影響は残るが西側重点化で相殺が進む',dir:'neu'},
+   ],
+   news:[
+     {head:'日立、英国鉄道デジタル化受注—800億円規模',impact:'鉄道信号・制御は長期安定収益。欧州展開の足掛かりにもなる。',sent:'pos',src:'日経',time:'2h前'},
+     {head:'日立、欧州電力会社3社とエネルギーSaaS契約',impact:'SaaS収益モデルの確立が進む。利益率の高いソフト事業比率が上昇。',sent:'pos',src:'Bloomberg',time:'1d前'},
+   ]},
+  {ticker:'7011',name:'三菱重工業',co:'MHI',emoji:'🏭',exchange:'東証PR',sector:'防衛・航空',signal:'buy',score:88,
+   price:2134,change:+52,pct:+2.50,vol:'15.6M',pe:'19.8',mktcap:'9.1兆',div:'0.8%',
+   tags:['防衛','航空宇宙','原子力'],
+   hist:[1200,1350,1520,1700,1820,1900,1980,2050,2080,2100,2110,2120,2130,2134],
+   entry:{buy:2050,stop:1850,target:2600},
+   signal_reason:'防衛費倍増・F-X・原子力回帰の三冠。上昇余地は依然大きい。',
+   short_reason:'防衛費倍増・GCAP・原子力の三重カタリスト健在。',
+   catalysts:[
+     {ico:'🛡️',text:'防衛費GDP比2%方針。ミサイル・艦艇・航空機で恩恵最大手',dir:'up'},
+     {ico:'✈️',text:'日英伊次世代戦闘機F-X（GCAP）が開発本格化。数兆円規模の長期収益源',dir:'up'},
+     {ico:'⚛️',text:'次世代原子炉開発受注＋既存炉の運転延長工事が増加',dir:'up'},
+   ],
+   news:[
+     {head:'三菱重工、護衛艦向け統合戦闘システム受注—3,000億円超',impact:'防衛費増額の直接恩恵。大型長期案件で業績の視認性が大幅向上。',sent:'pos',src:'産経',time:'3h前'},
+     {head:'GCAP次世代戦闘機、エンジン開発体制を発表',impact:'F-X案件の具体化が加速。長期収益貢献を市場が評価。',sent:'pos',src:'Reuters',time:'5h前'},
+   ]},
+  {ticker:'6361',name:'荏原製作所',co:'Ebara Corp.',emoji:'💧',exchange:'東証PR',sector:'水処理',signal:'buy',score:79,
+   price:3287,change:+89,pct:+2.79,vol:'3.1M',pe:'17.2',mktcap:'1.1兆',div:'1.2%',
+   tags:['水インフラ','半導体CMP','ポンプ'],
+   hist:[1900,2200,2500,2750,2880,3000,3100,3150,3200,3260,3285,3290,3280,3287],
+   entry:{buy:3100,stop:2850,target:3800},
+   signal_reason:'半導体CMP装置世界シェア約40%。AI需要×水インフラの二本柱が強固。',
+   short_reason:'半導体CMP需要爆発＋水インフラの二本柱。',
+   catalysts:[
+     {ico:'🔬',text:'AI半導体CMP装置で世界シェア約40%。受注残が過去最高',dir:'up'},
+     {ico:'💧',text:'東南アジア・中東の水処理インフラ大型受注が続く',dir:'up'},
+     {ico:'♻️',text:'水循環・再利用技術へのESG投資マネー流入',dir:'up'},
+   ],
+   news:[
+     {head:'荏原、CMP装置受注残が過去最高—AI需要で急増',impact:'AI半導体製造に不可欠。受注残は2〜3年先の業績を先行保証。',sent:'pos',src:'日経半導体',time:'4h前'},
+     {head:'荏原、サウジアラビア海水淡水化プロジェクト受注',impact:'中東水インフラ投資が急拡大。アフターサービス収益も見込める。',sent:'pos',src:'Bloomberg',time:'2d前'},
+   ]},
+  {ticker:'6367',name:'ダイキン工業',co:'Daikin Industries',emoji:'❄️',exchange:'東証PR',sector:'空調',signal:'hold',score:58,
+   price:18340,change:-120,pct:-0.65,vol:'1.8M',pe:'28.4',mktcap:'5.4兆',div:'0.9%',
+   tags:['空調','熱ポンプ','脱炭素'],
+   hist:[20500,20000,19500,18800,18600,18400,18300,18500,18400,18200,18350,18400,18350,18340],
+   entry:{buy:17500,stop:16800,target:21000},
+   signal_reason:'欧州ヒートポンプ需要の一時的鈍化で調整中。長期は脱炭素恩恵大。押し目待ち。',
+   short_reason:'欧州鈍化で調整中。17,500円台まで待つのが無難。',
+   catalysts:[
+     {ico:'🌡️',text:'欧州ヒートポンプ補助金見直しで短期需要が鈍化中',dir:'dn'},
+     {ico:'🌍',text:'インド・東南アジアのエアコン普及が長期成長ドライバー',dir:'up'},
+   ],
+   news:[
+     {head:'ダイキン、インドに第2工場建設',impact:'インド市場のシェア拡大戦略が具体化。中期的な成長市場へのポジション固め。',sent:'pos',src:'日経',time:'1d前'},
+   ]},
+  {ticker:'AWK',name:'American Water Works',co:'AWK',emoji:'🇺🇸',exchange:'NYSE',sector:'米国水道',signal:'watch',score:62,
+   price:124.50,change:-1.20,pct:-0.95,vol:'1.4M',pe:'32.1',mktcap:'$22.8B',div:'2.1%',
+   tags:['水インフラ','公益','規制産業'],
+   hist:[135,132,128,130,126,128,124,127,125,122,124,126,125,124.5],
+   entry:{buy:118,stop:112,target:140},
+   signal_reason:'金利高止まりで公益株が調整中。118ドル台まで下落すれば強力な買い場。',
+   short_reason:'金利次第。118ドル割れでエントリー検討を。',
+   catalysts:[
+     {ico:'💧',text:'米インフラ法で水道管更新補助金が拡大',dir:'up'},
+     {ico:'📉',text:'FRBの利下げ本格化が見直し買いのトリガーに',dir:'up'},
+     {ico:'⚠️',text:'金利高止まりが現在の株価に重し',dir:'dn'},
+   ],
+   news:[
+     {head:'AWK、Pennsylvania州でM&Aによる事業拡大を発表',impact:'規制料金収入基盤の拡大は安定成長に直結。',sent:'pos',src:'WSJ',time:'6h前'},
+   ]},
+  {ticker:'HON',name:'Honeywell Intl.',co:'Honeywell',emoji:'🔧',exchange:'NASDAQ',sector:'産業オート',signal:'hold',score:65,
+   price:212.30,change:+0.80,pct:+0.38,vol:'3.2M',pe:'24.8',mktcap:'$131B',div:'2.3%',
+   tags:['産業IoT','防衛','航空宇宙'],
+   hist:[205,207,210,208,212,209,211,213,215,212,210,211,213,212.3],
+   entry:{buy:205,stop:195,target:235},
+   signal_reason:'分社化（3分割）計画が進行中。事業価値の顕在化に期待。航空宇宙需要は堅調。',
+   short_reason:'3分割計画の進展で価値解放に期待。205ドル台でエントリー。',
+   catalysts:[
+     {ico:'✂️',text:'3分割計画が進展。スピンオフ後に個別評価が上昇見込み',dir:'up'},
+     {ico:'🛫',text:'航空アビオニクス・エンジン部品の需要増が継続',dir:'up'},
+   ],
+   news:[
+     {head:'Honeywell、航空宇宙部門を独立上場へ—2026年完了',impact:'各事業の本来価値が市場で評価されやすくなる価値解放のカタリスト。',sent:'pos',src:'FT',time:'8h前'},
+   ]},
+];
+
+const TAPE_DATA=[
+  {s:'6501',p:'3,824',c:'+1.78%',up:true},{s:'7011',p:'2,134',c:'+2.50%',up:true},
+  {s:'6361',p:'3,287',c:'+2.79%',up:true},{s:'AWK',p:'$124.5',c:'-0.95%',up:false},
+  {s:'HON',p:'$212.3',c:'+0.38%',up:true},{s:'6367',p:'18,340',c:'-0.65%',up:false},
+  {s:'USD/JPY',p:'152.4',c:'+0.12%',up:true},{s:'日経',p:'38,450',c:'+0.8%',up:true},
+];
+
+const MACRO=[
+  {t:'日銀政策 / BOJ',b:'利上げは2024年3月・7月と続き現在0.25%。インフレ持続が確認されれば2025年前半にも追加利上げの可能性。内需インフラ株（水処理・電力）への影響は限定的。'},
+  {t:'防衛費拡大 / DEFENSE',b:'日本はGDP比1%→2%への防衛費増額を2027年度までに達成目標。三菱重工・川崎重工・IHIなど防衛主要企業の受注は今後5年間で大幅拡大が見込まれる。'},
+  {t:'水インフラ投資 / WATER',b:'全世界で2040年までに約54兆ドルのインフラ投資が必要（OECD試算）。日本国内でも老朽化した上下水道の更新が本格化。荏原・クボタ・メタウォーターが恩恵銘柄。'},
+  {t:'米国利下げサイクル / FED',b:'FRBの利下げ開始は公益インフラ株の見直し買いを促す重要カタリスト。現在の高金利環境での下落は長期投資家にとって好機となりうる。'},
+];
+
+/* ─── AI FETCH ─── */
+function getApiKey(){return localStorage.getItem('infrasage_apikey')||'';}
+async function callClaude(prompt){
+  const key=getApiKey();
+  if(!key) throw new Error('NO_KEY');
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!r.ok){
+    const e=await r.json().catch(()=>({}));
+    const msg=e.error?.message||`HTTP ${r.status}`;
+    if(r.status===401||msg.toLowerCase().includes('api key')||msg.toLowerCase().includes('invalid x-api')||msg.toLowerCase().includes('authentication')){
+      throw new Error('INVALID_KEY');
+    }
+    throw new Error(msg);
+  }
+  const d=await r.json();
+  return d.content?.[0]?.text||'分析を取得できませんでした。';
+}
+
+/* ─── SPARKLINE ─── */
+function Spark({data,color}){
+  const mn=Math.min(...data),mx=Math.max(...data),r=mx-mn||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*100},${28-((v-mn)/r)*24-2}`).join(' ');
+  return <svg viewBox="0 0 100 28" className="spark" preserveAspectRatio="none">
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+
+/* ─── BIG CHART ─── */
+function BigChart({data,color}){
+  const mn=Math.min(...data),mx=Math.max(...data),r=mx-mn||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*100},${100-((v-mn)/r)*90-4}`).join(' ');
+  const area=pts+` 100,100 0,100`;
+  return <svg viewBox="0 0 100 100" className="big-chart" preserveAspectRatio="none">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={color} stopOpacity="0.28"/>
+      <stop offset="100%" stopColor={color} stopOpacity="0.02"/>
+    </linearGradient></defs>
+    <polygon points={area} fill="url(#ag)"/>
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+
+const sigColor=s=>s==='buy'?'var(--green)':s==='sell'?'var(--red)':s==='watch'?'var(--cyan)':'var(--amber)';
+const sigJP=s=>s==='buy'?'BUY':s==='hold'?'HOLD':s==='watch'?'WATCH':'SELL';
+
+/* ─── YAHOO FINANCE 株価取得 ─── */
+async function fetchYahooPrice(ticker){
+  const symbol=/^\d{4}$/.test(ticker)?`${ticker}.T`:ticker;
+  const yahooUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+
+  // CORSブロック対策：2つのプロキシを順に試す
+  const attempts=[
+    `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+    yahooUrl  // 直接アクセスも最後に試す
+  ];
+
+  let lastErr;
+  for(const url of attempts){
+    try{
+      const r=await fetch(url,{headers:{Accept:'application/json'}});
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d=await r.json();
+      const meta=d.chart?.result?.[0]?.meta;
+      if(!meta?.regularMarketPrice) throw new Error('価格データなし');
+      return{
+        price:meta.regularMarketPrice,
+        change:+((meta.regularMarketChange)||0).toFixed(2),
+        pct:+((meta.regularMarketChangePercent)||0).toFixed(2)
+      };
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('取得失敗');
+}
+
+/* ─────────────── APP ─────────────── */
+function App(){
+  const [tab,setTab]=useState('watch');
+  const [stocks,setStocks]=useState(()=>{try{const s=localStorage.getItem('infrasage_stocks');return s?JSON.parse(s):STOCKS;}catch{return STOCKS;}});
+  const [sector,setSector]=useState('ALL');
+  const [detail,setDetail]=useState(null);
+  const [period,setPeriod]=useState('3M');
+  const [aiText,setAiText]=useState(()=>{try{const c=localStorage.getItem('infrasage_ai');return c?JSON.parse(c):{};}catch{return {};}});
+  const [aiLoad,setAiLoad]=useState({});
+
+  // Recommend tab state
+  const [recos,setRecos]=useState([]);
+  const [recoLoad,setRecoLoad]=useState(false);
+  const [recoGenerated,setRecoGenerated]=useState(false);
+
+  const [showAdd,setShowAdd]=useState(false);
+  const [newTick,setNewTick]=useState('');
+  const [nameHint,setNameHint]=useState('');
+  const [toast,setToast]=useState(null);
+  const toastRef=useRef();
+
+  // API Key state
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem('infrasage_apikey')||'');
+  const [apiKeyInput,setApiKeyInput]=useState('');
+  const [showApiModal,setShowApiModal]=useState(false);
+  const [loadingTickers,setLoadingTickers]=useState({});
+  const [priceLoading,setPriceLoading]=useState({});
+  const [allPriceLoading,setAllPriceLoading]=useState(false);
+
+  // Persist to localStorage
+  useEffect(()=>{try{localStorage.setItem('infrasage_stocks',JSON.stringify(stocks));}catch{}},[stocks]);
+  useEffect(()=>{try{localStorage.setItem('infrasage_ai',JSON.stringify(aiText));}catch{}},[aiText]);
+
+  const showToast=msg=>{setToast(msg);clearTimeout(toastRef.current);toastRef.current=setTimeout(()=>setToast(null),2800)};
+
+  const saveApiKey=()=>{
+    const k=apiKeyInput.trim();
+    if(k&&!k.startsWith('sk-ant-')){
+      showToast('⚠️ APIキーは sk-ant- で始まる形式です');
+      return;
+    }
+    localStorage.setItem('infrasage_apikey',k);
+    setApiKey(k);setShowApiModal(false);
+    showToast(k?'✓ APIキーを保存しました':'APIキーをクリアしました');
+  };
+
+  const sectors=['ALL','重電・IT','防衛・航空','水処理','空調','米国株'];
+  const sectorKey={'重電・IT':'重電・IT','防衛・航空':'防衛・航空','水処理':'水処理','空調':'空調'};
+  const filtered=sector==='ALL'?stocks:sector==='米国株'?stocks.filter(s=>s.exchange==='NYSE'||s.exchange==='NASDAQ'):stocks.filter(s=>s.sector===sectorKey[sector]);
+
+  // AI分析フェッチ（共通ロジック）
+  const fetchAnalysis=async s=>{
+    setAiLoad(p=>({...p,[s.ticker]:true}));
+    try{
+      const txt=await callClaude(`あなたはインフラ・防衛・水処理セクター専門の株式アナリストです。
+銘柄: ${s.ticker} ${s.name}（${s.sector}）
+現在値: ${s.price} / 変化率: ${s.pct}% / PER: ${s.pe} / テーマ: ${s.tags.join('・')}
+シグナル: ${sigJP(s.signal)}（総合スコア${s.score}/100）
+根拠ヒント: ${s.signal_reason}
+
+以下を日本語200字以内で述べてください：
+①現在の株価モメンタムの主因（1〜2文）
+②今後3ヶ月の注目カタリスト（1〜2文）
+③具体的な対応方針・エントリー目安（1文）
+※教育・情報提供目的であり投資助言ではありません。`);
+      setAiText(p=>({...p,[s.ticker]:txt}));
+    }catch(e){
+      if(e.message==='NO_KEY'){
+        setShowApiModal(true);
+        setAiText(p=>({...p,[s.ticker]:'⚠️ APIキーを設定してください（右上の⚙️ボタン）'}));
+      }else if(e.message==='INVALID_KEY'){
+        setShowApiModal(true);
+        setAiText(p=>({...p,[s.ticker]:'⚠️ APIキーが無効です。正しいキーを⚙️から再設定してください。'}));
+      }else{
+        setAiText(p=>({...p,[s.ticker]:`⚠️ エラー: ${e.message}`}));
+      }
+    }finally{setAiLoad(p=>({...p,[s.ticker]:false}));}
+  };
+
+  // 詳細を開く（キャッシュがなければ自動フェッチ）
+  const openDetail=s=>{
+    setDetail(s);
+    if(!aiText[s.ticker]) fetchAnalysis(s);
+  };
+
+  // キャッシュをクリアして再取得
+  const refreshAnalysis=s=>{
+    setAiText(p=>{const n={...p};delete n[s.ticker];return n;});
+    fetchAnalysis(s);
+  };
+
+  // Generate recommendations
+  const generateRecos=async()=>{
+    setRecoLoad(true);setRecoGenerated(false);setRecos([]);
+    try{
+      const watchedTickers=stocks.map(s=>s.ticker).join(', ');
+      const prompt=`あなたはインフラ・防衛・水処理・重工業・産業技術セクターの株式アナリストです。
+ユーザーは現在以下の銘柄をウォッチしています：${watchedTickers}
+ユーザーの関心：日立製作所・三菱重工・水インフラ関連、インフラ系全般、日本株と米国株の両方。
+
+上記銘柄と「かぶらない」新規銘柄を6つ提案してください。
+各銘柄について以下のJSON形式で出力してください（他のテキストは一切出力しないこと）：
+
+[
+  {
+    "ticker": "証券コードまたはティッカー",
+    "name": "企業名（日本語）",
+    "exchange": "東証PR または NYSE/NASDAQ",
+    "sector": "セクター名",
+    "emoji": "絵文字1つ",
+    "signal": "buy または hold または watch",
+    "price_approx": "現在の概算株価（円またはドル、単位付き）",
+    "pe_approx": "概算PER",
+    "div_approx": "概算配当利回り",
+    "themes": ["テーマ1","テーマ2","テーマ3"],
+    "why": "なぜこの銘柄をインフラ投資家に勧めるか。具体的な事業内容・カタリスト・強みを150字以内で。",
+    "entry_buy": "推奨エントリー価格の目安",
+    "entry_target": "目標株価の目安",
+    "entry_stop": "ストップロス目安"
+  }
+]
+
+以下の条件で選ぶこと：
+- 日本株3銘柄＋米国株3銘柄のバランス
+- インフラ・防衛・水処理・重電・エネルギー・産業技術などのセクター中心
+- 時価総額が十分にある実在の企業のみ
+- BUYシグナルを3件、HOLDまたはWATCHを3件含める`;
+
+      const txt=await callClaude(prompt);
+      // Extract JSON
+      const match=txt.match(/\[[\s\S]*\]/);
+      if(match){
+        const parsed=JSON.parse(match[0]);
+        setRecos(parsed);
+        setRecoGenerated(true);
+      }
+    }catch(e){
+      console.error(e);
+      if(e.message==='NO_KEY'||e.message==='INVALID_KEY'){
+        setShowApiModal(true);
+        showToast(e.message==='INVALID_KEY'?'⚠️ APIキーが無効です。再設定してください':'⚙️ APIキーを設定してください');
+      }else{showToast(`⚠️ ${e.message||'AI提案の生成に失敗しました'}`);}
+    }finally{setRecoLoad(false);}
+  };
+
+  // Auto-generate on first visit
+  useEffect(()=>{if(tab==='reco'&&!recoGenerated&&!recoLoad){generateRecos();}},[tab]);
+
+  // AI で銘柄情報をフェッチして stock オブジェクトを返す
+  const fetchStockInfo=async(ticker,hint='')=>{
+    const isJP=/^\d{4}$/.test(ticker);
+    const subject=isJP
+      ?`東京証券取引所（東証プライム）に上場する日本株。証券コード: ${ticker}${hint?`、企業名: ${hint}`:''}。`
+      :`ティッカーシンボル: ${ticker}${hint?`、企業名ヒント: ${hint}`:''}。`;
+    const prompt=`あなたは株式アナリストです。以下の銘柄について情報を提供してください。
+${subject}
+${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返してください。誤った企業名は厳禁です。`:''}
+以下のJSON形式のみで回答してください（他のテキストは一切不要）：
+{
+  "name": "企業名（日本語）",
+  "co": "企業名（英語略称）",
+  "emoji": "企業イメージの絵文字1つ",
+  "exchange": "上場市場（例: 東証PR / NYSE / NASDAQ）",
+  "sector": "セクター名（例: 重電・IT / 防衛・航空 / 水処理 / 空調）",
+  "signal": "buy または hold または watch または sell",
+  "score": スコア数値(0〜100),
+  "price": 概算株価(数値のみ),
+  "pe": "概算PER（例: 18.5）",
+  "mktcap": "時価総額（例: 5.2兆 または $32B）",
+  "div": "配当利回り（例: 1.8%）",
+  "tags": ["テーマ1","テーマ2","テーマ3"],
+  "hist": [直近14期分の概算株価を示す数値の配列],
+  "entry": {"buy": 買いゾーン数値, "stop": ストップ数値, "target": 目標数値},
+  "signal_reason": "シグナル根拠（100字以内）",
+  "short_reason": "40字以内の短い理由",
+  "catalysts": [
+    {"ico": "絵文字", "text": "カタリスト内容（60字以内）", "dir": "up または dn または neu"}
+  ],
+  "news": [
+    {"head": "最近のニュース見出し", "impact": "株価への影響（40字以内）", "sent": "pos または neg または neu", "src": "出典名", "time": "〇〇前"}
+  ]
+}
+※情報は参考概算値です。`;
+    const txt=await callClaude(prompt);
+    const match=txt.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('データ解析失敗');
+    const d=JSON.parse(match[0]);
+    const basePrice=Number(d.price)||100;
+    return {
+      name:d.name||ticker, co:d.co||ticker, emoji:d.emoji||'📊',
+      exchange:d.exchange||'MARKET', sector:d.sector||'その他',
+      signal:['buy','hold','watch','sell'].includes(d.signal)?d.signal:'watch',
+      score:Math.min(100,Math.max(0,Number(d.score)||50)),
+      price:basePrice, change:0, pct:0, vol:'—',
+      pe:d.pe||'—', mktcap:d.mktcap||'—', div:d.div||'—',
+      tags:Array.isArray(d.tags)?d.tags:['追加銘柄'],
+      hist:(Array.isArray(d.hist)&&d.hist.length>=2)
+        ?d.hist.map(Number)
+        :Array.from({length:14},(_,i)=>basePrice*(0.92+i*0.008)),
+      entry:{
+        buy:d.entry?.buy??'—',
+        stop:d.entry?.stop??'—',
+        target:d.entry?.target??'—'
+      },
+      signal_reason:d.signal_reason||'',
+      short_reason:d.short_reason||'',
+      catalysts:Array.isArray(d.catalysts)?d.catalysts:[],
+      news:Array.isArray(d.news)?d.news:[]
+    };
+  };
+
+  const addStock=async()=>{
+    const t=newTick.trim().toUpperCase();
+    if(!t)return;
+    if(stocks.find(s=>s.ticker===t)){showToast(`${t} は既にリストにあります`);setShowAdd(false);return;}
+    // プレースホルダーを即時追加
+    const placeholder={ticker:t,name:t,co:t,emoji:'📊',exchange:'MARKET',sector:'その他',signal:'watch',score:50,
+      price:0,change:0,pct:0,vol:'—',pe:'—',mktcap:'—',div:'—',tags:['取得中'],
+      hist:Array.from({length:14},(_,i)=>100+Math.sin(i*.7)*10),
+      entry:{buy:'—',stop:'—',target:'—'},signal_reason:'AI情報取得中...',short_reason:'取得中',catalysts:[],news:[]};
+    setStocks(p=>[...p,placeholder]);
+    setLoadingTickers(p=>({...p,[t]:true}));
+    const hint=nameHint.trim();
+    setNewTick('');setNameHint('');setShowAdd(false);
+    showToast(`✓ ${t} を追加。AI情報を取得中...`);
+    try{
+      const info=await fetchStockInfo(t,hint);
+      setStocks(p=>p.map(s=>s.ticker===t?{...s,...info,ticker:t}:s));
+      showToast(`✓ ${t}（${info.name}）の情報を取得しました`);
+    }catch(e){
+      if(e.message==='NO_KEY'){
+        setShowApiModal(true);
+        showToast(`${t} を追加しました（⚙️ APIキー設定でAI情報取得可能）`);
+      }else{
+        showToast(`⚠️ ${t} 情報取得失敗: ${e.message}`);
+      }
+    }finally{
+      setLoadingTickers(p=>{const n={...p};delete n[t];return n;});
+    }
+  };
+
+  const addRecoToWatch=(r)=>{
+    if(stocks.find(s=>s.ticker===r.ticker)){showToast(`${r.ticker} は既にリストにあります`);return;}
+    const fake={ticker:r.ticker,name:r.name,co:r.name,emoji:r.emoji,exchange:r.exchange,sector:r.sector,
+      signal:r.signal,score:r.signal==='buy'?78:65,
+      price:parseFloat((r.price_approx||'1000').replace(/[^0-9.]/g,'')),
+      change:0,pct:0,vol:'—',pe:r.pe_approx||'—',mktcap:'—',div:r.div_approx||'—',
+      tags:r.themes||[],
+      hist:Array.from({length:14},(_,i)=>100+Math.sin(i*.6)*12+Math.random()*6),
+      entry:{buy:r.entry_buy||'—',stop:r.entry_stop||'—',target:r.entry_target||'—'},
+      signal_reason:r.why,short_reason:r.why?.slice(0,40)+'…',catalysts:[],news:[]};
+    setStocks(p=>[...p,fake]);
+    showToast(`✓ ${r.ticker} をウォッチリストに追加しました`);
+  };
+
+  const refreshPrice=async(ticker)=>{
+    setPriceLoading(p=>({...p,[ticker]:true}));
+    try{
+      const{price,change,pct}=await fetchYahooPrice(ticker);
+      setStocks(p=>p.map(s=>s.ticker===ticker?{...s,price,change,pct}:s));
+      setDetail(prev=>prev?.ticker===ticker?{...prev,price,change,pct}:prev);
+      showToast(`✓ ${ticker} ¥${price.toLocaleString()} に更新しました`);
+    }catch(e){
+      showToast(`⚠️ ${ticker} 取得失敗: ${e.message}`);
+    }finally{
+      setPriceLoading(p=>{const n={...p};delete n[ticker];return n;});
+    }
+  };
+
+  const refreshAllPrices=async()=>{
+    setAllPriceLoading(true);
+    let ok=0,fail=0;
+    for(const s of stocks){
+      try{
+        const{price,change,pct}=await fetchYahooPrice(s.ticker);
+        setStocks(p=>p.map(st=>st.ticker===s.ticker?{...st,price,change,pct}:st));
+        ok++;
+      }catch{fail++;}
+      await new Promise(r=>setTimeout(r,350)); // レート制限対策
+    }
+    setAllPriceLoading(false);
+    showToast(`✓ ${ok}銘柄を更新${fail>0?` / ${fail}件取得失敗`:''}`);
+  };
+
+  const deleteStock=(ticker)=>{
+    setStocks(p=>p.filter(s=>s.ticker!==ticker));
+    if(detail?.ticker===ticker) setDetail(null);
+    showToast(`${ticker} をウォッチリストから削除しました`);
+  };
+
+  const refetchStockInfo=async(s)=>{
+    const hint=window.prompt(`「${s.ticker}」の企業名ヒントを入力（任意）\n誤認識の場合は正しい企業名を入力してください。\n例: クボタ`, '');
+    if(hint===null) return;
+    setLoadingTickers(p=>({...p,[s.ticker]:true}));
+    try{
+      const info=await fetchStockInfo(s.ticker,hint.trim());
+      setStocks(p=>p.map(st=>st.ticker===s.ticker?{...st,...info,ticker:s.ticker}:st));
+      setDetail(prev=>prev?.ticker===s.ticker?{...prev,...info,ticker:s.ticker}:prev);
+      showToast(`✓ ${s.ticker}（${info.name}）の情報を更新しました`);
+    }catch(e){
+      showToast(`⚠️ 情報取得失敗: ${e.message}`);
+    }finally{
+      setLoadingTickers(p=>{const n={...p};delete n[s.ticker];return n;});
+    }
+  };
+
+  const buyCount=stocks.filter(s=>s.signal==='buy').length;
+  const upCount=stocks.filter(s=>s.pct>0).length;
+
+  return (
+    <div className="app">
+      <div className={`toast${toast?' show':''}`}>{toast}</div>
+
+      {/* HEADER */}
+      <div className="hdr">
+        <div className="hdr-brand">
+          <div className="hdr-mark">🏗️</div>
+          <div>
+            <div className="hdr-name">INFRA SAGE</div>
+            <div className="hdr-sub">インフラ株AI顧問</div>
+          </div>
+        </div>
+        <div className="hdr-r">
+          <div className="live"/>LIVE · 15分遅延
+          <button className="settings-btn" title={apiKey?'APIキー設定済（変更）':'APIキー未設定'} onClick={()=>{setApiKeyInput(apiKey);setShowApiModal(true);}}>⚙️</button>
+          <div className={`key-dot ${apiKey?'set':'unset'}`} title={apiKey?'APIキー設定済':'APIキー未設定'}/>
+        </div>
+      </div>
+
+      {/* TAPE */}
+      <div className="tape">
+        <div className="tape-in">
+          {[...TAPE_DATA,...TAPE_DATA].map((t,i)=>(
+            <div className="ti" key={i}>
+              <span className="ti-s">{t.s}</span>
+              <span className="ti-p">{t.p}</span>
+              <span className={`ti-c ${t.up?'up':'dn'}`}>{t.c}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="page">
+
+        {/* ══ WATCH TAB ══ */}
+        {tab==='watch'&&<div className="fade-in">
+          <div className="banner">
+            <div className="bn-grid">
+              <div className="bn-i"><div className="bn-l">WATCH</div><div className="bn-v c">{stocks.length}</div></div>
+              <div className="bn-i"><div className="bn-l">BUY SIG</div><div className="bn-v g">{buyCount}</div></div>
+              <div className="bn-i"><div className="bn-l">上昇中</div><div className="bn-v a">{upCount}</div></div>
+              <div className="bn-i"><div className="bn-l">HOLD</div><div className="bn-v" style={{color:'var(--t2)'}}>{stocks.filter(s=>s.signal==='hold').length}</div></div>
+            </div>
+            <button className="refresh-all-btn" onClick={refreshAllPrices} disabled={allPriceLoading}>
+              {allPriceLoading
+                ?<><div className="dots" style={{display:'inline-flex'}}><span/><span/><span/></div>取得中 ({stocks.length}銘柄)...</>
+                :(<>📡 全銘柄の株価を今すぐ更新</>)}
+            </button>
+          </div>
+
+          <div className="sf">
+            {sectors.map(s=><div key={s} className={`sc${sector===s?' on':''}`} onClick={()=>setSector(s)}>{s}</div>)}
+          </div>
+
+          <div className="cards">
+            {filtered.map((s,i)=>(
+              <div key={s.ticker}
+                className={`card s-${s.signal}${s.signal==='buy'?' featured':''} fade-in`}
+                style={{animationDelay:`${i*.06}s`}}
+                onClick={()=>openDetail(s)}>
+
+                {/* ── BUY/HOLD/WATCH SIGNAL BANNER at top ── */}
+                <div className="sig-banner">
+                  <div className="sig-left">
+                    <div className="sig-dot"/>
+                    <div className="sig-word">{sigJP(s.signal)}</div>
+                    <div style={{fontFamily:'var(--f-mo)',fontSize:10,color:'var(--t3)',letterSpacing:1}}>
+                      {s.score}/100
+                    </div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <div className="sig-reason-short">{s.short_reason}</div>
+                    <button className="del-btn" title="削除"
+                      onClick={e=>{e.stopPropagation();deleteStock(s.ticker)}}>×</button>
+                  </div>
+                </div>
+
+                {/* ── Card body ── */}
+                <div className="card-body">
+                  <div className="card-row1">
+                    <div className="cl">
+                      <div className="c-ico">{s.emoji}</div>
+                      <div>
+                        <div className="c-tic">{s.ticker}</div>
+                        <div className="c-nm">{s.name}</div>
+                      </div>
+                    </div>
+                    <div className="cr" style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div>
+                        <div className="c-pr">{typeof s.price==='number'?s.price.toLocaleString():s.price}</div>
+                        <div className={`c-ch ${s.pct>=0?'up':'dn'}`}>{s.pct>=0?'▲':'▼'}{Math.abs(s.pct)}%</div>
+                      </div>
+                      <button className="price-refresh-btn" title="株価を更新"
+                        disabled={!!priceLoading[s.ticker]}
+                        onClick={e=>{e.stopPropagation();refreshPrice(s.ticker)}}>
+                        {priceLoading[s.ticker]?'…':'📡'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="spark-w">
+                    <Spark data={s.hist} color={s.pct>=0?'var(--green)':'var(--red)'}/>
+                  </div>
+
+                  <div className="c-meta">
+                    <div className="cm">PER <span>{s.pe}</span></div>
+                    <div className="cm">配当 <span>{s.div}</span></div>
+                    <div className="cm">出来高 <span>{s.vol}</span></div>
+                  </div>
+
+                  <div className="tags">
+                    {s.tags.map(t=><div className="tag" key={t}>{t}</div>)}
+                  </div>
+                </div>
+
+                <div className="tap-hint">タップで詳細・AI分析を表示 →</div>
+
+                {/* AI情報取得中オーバーレイ */}
+                {loadingTickers[s.ticker]&&(
+                  <div style={{position:'absolute',inset:0,background:'rgba(6,8,11,.82)',borderRadius:14,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,zIndex:5}}>
+                    <div className="dots"><span/><span/><span/></div>
+                    <div style={{fontFamily:'var(--f-mo)',fontSize:10,color:'var(--cyan)',letterSpacing:2}}>AI情報取得中...</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button className="add-btn" onClick={()=>setShowAdd(true)}>＋ 銘柄を手動追加</button>
+          <div style={{height:20}}/>
+        </div>}
+
+        {/* ══ AI RECOMMEND TAB ══ */}
+        {tab==='reco'&&<div className="fade-in">
+          <div className="reco-banner">
+            <div className="reco-banner-title">🤖 AI DISCOVERY</div>
+            <div className="reco-banner-body">
+              あなたのウォッチリスト（日立・三菱重工・荏原など）をもとに、AIがインフラ系の有望な未発掘銘柄を自動提案します。
+            </div>
+            <button className="reco-refresh" onClick={generateRecos} disabled={recoLoad}>
+              {recoLoad?<><div className="dots" style={{display:'inline-flex'}}><span/><span/><span/></div> 生成中...</>:'🔄 新しい提案を生成'}
+            </button>
+          </div>
+
+          {recoLoad&&(
+            <div style={{padding:'40px 20px',textAlign:'center',color:'var(--t3)',fontFamily:'var(--f-mo)',fontSize:12,letterSpacing:2}}>
+              <div className="dots" style={{justifyContent:'center',marginBottom:12}}><span/><span/><span/></div>
+              AIが銘柄を分析・厳選中...
+            </div>
+          )}
+
+          {!recoLoad&&recos.length>0&&(
+            <div className="reco-cards">
+              {recos.map((r,i)=>(
+                <div key={i} className="reco-card fade-in" style={{animationDelay:`${i*.07}s`}}>
+                  <div className="reco-header">
+                    <div className="reco-hl">
+                      <div className="reco-ico">{r.emoji}</div>
+                      <div>
+                        <div className="reco-tick">{r.ticker}</div>
+                        <div className="reco-nm">{r.name} · {r.exchange}</div>
+                      </div>
+                    </div>
+                    <div className={`reco-sig ${r.signal}`}>{sigJP(r.signal)}</div>
+                  </div>
+
+                  <div className="reco-body">
+                    <div className="reco-why-label">AI推奨理由</div>
+                    <div className="reco-why">{r.why}</div>
+
+                    <div className="reco-meta">
+                      <div className="rm-item">概算株価 <span>{r.price_approx}</span></div>
+                      <div className="rm-item">PER <span>{r.pe_approx}</span></div>
+                      <div className="rm-item">配当 <span>{r.div_approx}</span></div>
+                    </div>
+
+                    <div className="reco-themes">
+                      {(r.themes||[]).map(t=><div key={t} className="reco-theme">{t}</div>)}
+                    </div>
+
+                    <div className="reco-entry">
+                      <div className="re-item"><div className="re-l">BUY ZONE</div><div className="re-v g">{r.entry_buy}</div></div>
+                      <div className="re-item"><div className="re-l">TARGET</div><div className="re-v c">{r.entry_target}</div></div>
+                      <div className="re-item"><div className="re-l">STOP</div><div className="re-v r">{r.entry_stop}</div></div>
+                    </div>
+
+                    <button className="reco-add-btn" onClick={()=>addRecoToWatch(r)}>
+                      ＋ ウォッチリストに追加
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div style={{height:16}}/>
+            </div>
+          )}
+        </div>}
+
+        {/* ══ NEWS TAB ══ */}
+        {tab==='news'&&<div className="fade-in">
+          <div className="sec-hd"><div className="sec-ttl">MARKET NEWS</div><div className="sec-sub">AI影響分析付き</div></div>
+          <div className="news-page">
+            {stocks.flatMap(s=>s.news.map(n=>({...n,ticker:s.ticker,sector:s.sector}))).map((n,i)=>(
+              <div className="np-card fade-in" key={i} style={{animationDelay:`${i*.06}s`}}>
+                <div className="np-sec">{n.sector} · {n.ticker}</div>
+                <div className="np-head">{n.head}</div>
+                <div className="np-ai"><span style={{fontFamily:'var(--f-mo)',fontSize:9,color:'var(--t3)',letterSpacing:1}}>株価影響 ▸ </span>{n.impact}</div>
+                <div className="np-foot">
+                  <span className="n-src">{n.src} · {n.time}</span>
+                  <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':n.sent==='neg'?'▼悪材料':'●中立'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* ══ MACRO TAB ══ */}
+        {tab==='macro'&&<div className="fade-in">
+          <div className="sec-hd"><div className="sec-ttl">MACRO・テーマ</div></div>
+          <div className="macro-page">
+            <div className="ind-grid">
+              {[{l:'USD/JPY',v:'152.4',cl:'a'},{l:'日経平均',v:'38,450',cl:'g'},{l:'10Y JGB',v:'0.95%',cl:'c'},{l:'WTI原油',v:'$82.1',cl:'a'}].map(i=>(
+                <div className="ind-c" key={i.l}><div className="ind-l">{i.l}</div><div className={`ind-v ${i.cl}`} style={{color:`var(--${i.cl==='g'?'green':i.cl==='c'?'cyan':'amber'})`}}>{i.v}</div></div>
+              ))}
+            </div>
+            {MACRO.map((m,i)=>(
+              <div className="macro-c fade-in" key={i} style={{animationDelay:`${i*.07}s`}}>
+                <div className="macro-t">{m.t}</div>
+                <div className="macro-b">{m.b}</div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+      </div>{/* end page */}
+
+      {/* NAV */}
+      <div className="nav">
+        {[
+          {id:'watch',ico:'📊',lbl:'銘柄'},
+          {id:'reco',ico:'🤖',lbl:'AI提案',badge:recos.length>0?recos.length:null},
+          {id:'news',ico:'📰',lbl:'ニュース'},
+          {id:'macro',ico:'🌐',lbl:'マクロ'},
+        ].map(n=>(
+          <button key={n.id} className={`nb${tab===n.id?' on':''}`} onClick={()=>setTab(n.id)}>
+            {n.badge&&<span className="nb-badge">{n.badge}</span>}
+            <span className="nb-ico">{n.ico}</span>{n.lbl}
+          </button>
+        ))}
+      </div>
+
+      {/* DETAIL OVERLAY */}
+      {detail&&(
+        <div className="detail open">
+          <div className="det-hdr">
+            <button className="back" onClick={()=>setDetail(null)}>←</button>
+            <div className="c-ico">{detail.emoji}</div>
+            <div>
+              <div className="det-t">{detail.ticker} · {detail.name}</div>
+              <div className="det-st">{detail.sector} · {detail.exchange}</div>
+            </div>
+            <button className="det-del-btn" style={{background:'var(--cyan-d)',border:'1px solid rgba(0,200,212,.3)',color:'var(--cyan)',marginRight:6}}
+              onClick={()=>refetchStockInfo(detail)}>
+              🔄 情報
+            </button>
+            <button className="det-del-btn"
+              onClick={()=>{if(window.confirm(`${detail.ticker}（${detail.name}）をウォッチリストから削除しますか？`))deleteStock(detail.ticker)}}>
+              🗑 削除
+            </button>
+          </div>
+
+          <div className="chart-zone">
+            <div className="big-p">{typeof detail.price==='number'?detail.price.toLocaleString():detail.price}</div>
+            <div className={`big-c ${detail.pct>=0?'up':'dn'}`}>{detail.pct>=0?'▲':'▼'}{Math.abs(detail.pct)}%（{detail.pct>=0?'+':''}{detail.change}）</div>
+            <div className="period-row">
+              {['1W','1M','3M','6M','1Y'].map(p=><button key={p} className={`per${period===p?' on':''}`} onClick={()=>setPeriod(p)}>{p}</button>)}
+            </div>
+            <BigChart data={detail.hist} color={detail.pct>=0?'var(--green)':'var(--red)'}/>
+          </div>
+
+          {/* VERDICT — big buy/hold/sell */}
+          <div className={`verdict ${detail.signal}`}>
+            <div className="vd-top">
+              <div className="vd-word">{sigJP(detail.signal)}</div>
+              <div className="vd-score-wrap">
+                <div className="vd-score-label">AI総合スコア</div>
+                <div className="vd-score-bar">
+                  <div className="vd-score-fill" style={{width:`${detail.score}%`}}/>
+                </div>
+                <div style={{fontFamily:'var(--f-mo)',fontSize:11,color:sigColor(detail.signal),marginTop:2}}>{detail.score}/100</div>
+              </div>
+            </div>
+            <div className="vd-reason">{detail.signal_reason}</div>
+          </div>
+
+          {/* AI Analysis */}
+          <div className="ai-card">
+            <div className="ai-hdr">
+              <div className="ai-hdr-l">
+                <div className="ai-icon">🤖</div>
+                <div className="ai-lbl">CLAUDE AI 詳細分析</div>
+              </div>
+              <button className="ai-refresh-btn"
+                disabled={!!aiLoad[detail.ticker]}
+                onClick={()=>refreshAnalysis(detail)}>
+                {aiLoad[detail.ticker]?'取得中...':'🔄 更新'}
+              </button>
+            </div>
+            {aiLoad[detail.ticker]
+              ?<div className="loading"><div className="dots"><span/><span/><span/></div>分析生成中...</div>
+              :<div className="ai-body">{aiText[detail.ticker]||detail.signal_reason}</div>
+            }
+          </div>
+
+          {/* Entry */}
+          <div className="entry-box">
+            <div className="entry-title">エントリー目安</div>
+            <div className="entry-row"><span className="entry-label">📍 買いゾーン</span><span className="entry-val ev-buy">{detail.entry.buy}</span></div>
+            <div className="entry-row"><span className="entry-label">🎯 目標株価</span><span className="entry-val ev-target">{detail.entry.target}</span></div>
+            <div className="entry-row" style={{marginBottom:4}}><span className="entry-label">🛑 ストップロス</span><span className="entry-val ev-stop">{detail.entry.stop}</span></div>
+            {(()=>{
+              const b=parseFloat(detail.entry.buy),t=parseFloat(detail.entry.target),s=parseFloat(detail.entry.stop);
+              const valid=!isNaN(b)&&!isNaN(t)&&!isNaN(s)&&b>s&&t>b;
+              const rr=valid?((t-b)/(b-s)):null;
+              const pct=valid?Math.min(Math.max((rr/4)*100,8),100):65;
+              return(<>
+                <div className="rr-bar"><div className="rr-fill" style={{width:`${pct}%`}}/></div>
+                <div className="rr-note">{rr?`リスクリワード比 推定 1:${rr.toFixed(1)}`:'リスクリワード比 —'}</div>
+              </>);
+            })()}
+          </div>
+
+          {/* Catalysts */}
+          <div className="cat-box">
+            <div className="box-ttl">カタリスト分析</div>
+            {detail.catalysts.map((c,i)=>(
+              <div className="cat-item" key={i}>
+                <div className="cat-ico">{c.ico}</div>
+                <div><div className="cat-t">{c.text}</div>
+                  <div className={`cat-dir ${c.dir}`}>{c.dir==='up'?'▲ポジティブ':c.dir==='dn'?'▼ネガティブ':'●中立'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Metrics */}
+          <div className="metrics">
+            {[
+              {l:'AI総合スコア',v:`${detail.score}/100`,cl:detail.score>=75?'g':detail.score>=55?'a':'r'},
+              {l:'PER',v:detail.pe,cl:''},
+              {l:'配当利回り',v:detail.div,cl:'g'},
+              {l:'時価総額',v:detail.mktcap,cl:'c'},
+              {l:'前日比',v:`${detail.pct>=0?'+':''}${detail.pct}%`,cl:detail.pct>=0?'g':'r'},
+              {l:'シグナル',v:sigJP(detail.signal),cl:detail.signal==='buy'?'g':detail.signal==='hold'?'a':'c'},
+            ].map(m=>(
+              <div className="mc" key={m.l}><div className="ml">{m.l}</div><div className={`mv ${m.cl}`}>{m.v}</div></div>
+            ))}
+          </div>
+
+          {/* News */}
+          {detail.news.length>0&&(
+            <div className="det-news">
+              <div className="box-ttl">関連ニュース</div>
+              {detail.news.map((n,i)=>(
+                <div className="n-card" key={i}>
+                  <div className="n-head">{n.head}</div>
+                  <div className="n-imp"><span style={{fontFamily:'var(--f-mo)',fontSize:9,color:'var(--t3)',letterSpacing:1}}>株価影響 ▸ </span>{n.impact}</div>
+                  <div className="n-foot">
+                    <span className="n-src">{n.src} · {n.time}</span>
+                    <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':'▼悪材料'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{height:30}}/>
+        </div>
+      )}
+
+      {/* API KEY MODAL */}
+      {showApiModal&&(
+        <div className="api-modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowApiModal(false)}}>
+          <div className="api-modal">
+            <div className="modal-hd">
+              <div className="api-modal-t" style={{margin:0}}>🔑 ANTHROPIC API KEY</div>
+              <button className="modal-close" onClick={()=>setShowApiModal(false)}>×</button>
+            </div>
+            <div className="api-modal-sub">
+              AI分析・銘柄提案機能の利用にはAnthropicのAPIキーが必要です。<br/>
+              キーはこの端末のlocalStorageにのみ保存されます。
+            </div>
+            <div className="api-modal-warn">
+              ⚠️ ブラウザから直接APIを呼び出します。このキーは個人利用のみに使用し、第三者と共有しないでください。
+            </div>
+            <input className="api-key-inp" type="password" placeholder="sk-ant-api03-..."
+              value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&saveApiKey()}/>
+            <div className="api-btns">
+              <button className="api-save-btn" onClick={saveApiKey}>保存する</button>
+              <button className="api-clear-btn" onClick={()=>{localStorage.removeItem('infrasage_apikey');setApiKey('');setApiKeyInput('');setShowApiModal(false);showToast('APIキーをクリアしました');}}>クリア</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD MODAL */}
+      {showAdd&&(
+        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
+          <div className="modal">
+            <div className="modal-hd">
+              <div className="modal-t" style={{margin:0}}>銘柄を手動追加</div>
+              <button className="modal-close" onClick={()=>setShowAdd(false)}>×</button>
+            </div>
+            <input className="m-inp" placeholder="証券コードまたはティッカー (例: 6326, GE)"
+              value={newTick} onChange={e=>setNewTick(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&addStock()}/>
+            <input className="m-inp" placeholder="企業名ヒント（任意）— 誤認識防止 例: クボタ"
+              value={nameHint} onChange={e=>setNameHint(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&addStock()}
+              style={{fontSize:12,color:'var(--t2)'}}/>
+            <div className="pre-wrap">
+              {['6503','6302','6326','9501','XYL','GE','EMR','CARR'].map(t=>(
+                <div key={t} className="pre" onClick={()=>setNewTick(t)}>{t}</div>
+              ))}
+            </div>
+            <button className="m-btn" onClick={addStock}>追加する</button>
+          </div>
+        </div>
+      )}
+
+      <div className="disclaimer">※ 投資助言ではありません。最終判断は自己責任でお願いします。</div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById('root'));
+</script>
+</body>
+</html>
