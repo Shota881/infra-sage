@@ -547,6 +547,26 @@ function BigChart({data,color}){
 const sigColor=s=>s==='buy'?'var(--green)':s==='sell'?'var(--red)':s==='watch'?'var(--cyan)':'var(--amber)';
 const sigJP=s=>s==='buy'?'BUY':s==='hold'?'HOLD':s==='watch'?'WATCH':'SELL';
 
+/* ─── ニュースリンク生成（ソース別） ─── */
+function getNewsUrl(n){
+  const src=n.src||'';
+  const q=encodeURIComponent(n.head);
+  if(src.includes('日経')||src.toLowerCase().includes('nikkei'))
+    return `https://www.nikkei.com/search?keyword=${q}`;
+  if(src.includes('Bloomberg')||src.includes('bloomberg'))
+    return `https://www.bloomberg.co.jp/search?query=${q}`;
+  if(src.includes('Reuters')||src.includes('reuters'))
+    return `https://jp.reuters.com/search/news?blob=${q}`;
+  if(src.includes('WSJ'))
+    return `https://www.wsj.com/search?query=${q}&mod=searchresults_viewallresults`;
+  if(src.includes('FT'))
+    return `https://www.ft.com/search?q=${q}`;
+  if(src.includes('産経')||src.includes('Sankei'))
+    return `https://www.sankei.com/search/?query=${q}`;
+  // デフォルト：Google ニュース
+  return `https://news.google.com/search?q=${encodeURIComponent(n.head+' '+src)}&hl=ja&gl=JP&ceid=JP:ja`;
+}
+
 /* ─── YAHOO FINANCE 株価取得 ─── */
 async function fetchYahooPrice(ticker){
   const symbol=/^\d{4}$/.test(ticker)?`${ticker}.T`:ticker;
@@ -1097,7 +1117,7 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                   <span className="n-src">{n.src} · {n.time}</span>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':n.sent==='neg'?'▼悪材料':'●中立'}</span>
-                    <a className="n-link" href={`https://news.google.com/search?q=${encodeURIComponent(n.head+' '+n.src)}&hl=ja&gl=JP&ceid=JP:ja`} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                    <a className="n-link" href={getNewsUrl(n)} target="_blank" rel="noopener noreferrer">🔗 検索</a>
                   </div>
                 </div>
               </div>
@@ -1260,7 +1280,7 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                     <span className="n-src">{n.src} · {n.time}</span>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <span className={`n-sen ${n.sent}`}>{n.sent==='pos'?'▲好材料':'▼悪材料'}</span>
-                      <a className="n-link" href={`https://news.google.com/search?q=${encodeURIComponent(n.head+' '+n.src)}&hl=ja&gl=JP&ceid=JP:ja`} target="_blank" rel="noopener noreferrer">🔗 検索</a>
+                      <a className="n-link" href={getNewsUrl(n)} target="_blank" rel="noopener noreferrer">🔗 検索</a>
                     </div>
                   </div>
                 </div>
