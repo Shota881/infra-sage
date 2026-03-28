@@ -571,6 +571,27 @@ function getNewsUrl(n){
   return `https://news.google.com/search?q=${encodeURIComponent(n.head+' '+src)}&hl=ja&gl=JP&ceid=JP:ja`;
 }
 
+/* ─── FINNHUB 株価履歴取得 ─── */
+async function fetchFinnhubCandles(ticker,period,apiKey){
+  const isJP=/^\d{4}$/.test(ticker);
+  const symbol=isJP?`TYO:${ticker}`:ticker;
+  const now=Math.floor(Date.now()/1000);
+  const periodMap={
+    '1W':{from:now-7*86400,  resolution:'D'},
+    '1M':{from:now-30*86400, resolution:'D'},
+    '3M':{from:now-90*86400, resolution:'D'},
+    '6M':{from:now-180*86400,resolution:'W'},
+    '1Y':{from:now-365*86400,resolution:'W'},
+  };
+  const{from,resolution}=periodMap[period]||periodMap['3M'];
+  const url=`https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}&from=${from}&to=${now}&token=${apiKey}`;
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d=await r.json();
+  if(d.s!=='ok'||!Array.isArray(d.c)||d.c.length===0) throw new Error('データなし');
+  return d.c;
+}
+
 /* ─── YAHOO FINANCE 株価取得 ─── */
 async function fetchYahooPrice(ticker){
   const symbol=/^\d{4}$/.test(ticker)?`${ticker}.T`:ticker;
@@ -630,6 +651,23 @@ function App(){
   const [priceLoading,setPriceLoading]=useState({});
   const [allPriceLoading,setAllPriceLoading]=useState(false);
   const [newsLinkMenu,setNewsLinkMenu]=useState(null);
+  const [finnhubKey,setFinnhubKey]=useState(()=>localStorage.getItem('infrasage_finnhub_key')||'');
+  const [finnhubKeyInput,setFinnhubKeyInput]=useState('');
+  const [chartData,setChartData]=useState(null);
+  const [chartLoading,setChartLoading]=useState(false);
+
+  // Finnhub チャートデータ取得（detail/period/finnhubKey 変化時）
+  useEffect(()=>{
+    if(!detail||!finnhubKey){setChartData(null);setChartLoading(false);return;}
+    let cancelled=false;
+    setChartLoading(true);
+    setChartData(null);
+    fetchFinnhubCandles(detail.ticker,period,finnhubKey)
+      .then(data=>{if(!cancelled)setChartData(data);})
+      .catch(()=>{if(!cancelled)setChartData(null);})
+      .finally(()=>{if(!cancelled)setChartLoading(false);});
+    return()=>{cancelled=true;};
+  },[detail?.ticker,period,finnhubKey]);
 
   // Persist to localStorage
   useEffect(()=>{try{localStorage.setItem('infrasage_stocks',JSON.stringify(stocks));}catch{}},[stocks]);
@@ -857,11 +895,25 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
     showToast(`✓ ${r.ticker} をウォッチリストに追加しました`);
   };
 
+  const calcUpdatedEntry=(entry,oldPrice,newPrice,isJP)=>{
+    if(!entry||oldPrice<=0) return entry;
+    const ratio=newPrice/oldPrice;
+    const round=(v)=>typeof v==='number'
+      ?(isJP?Math.round(v*ratio):Math.round(v*ratio*100)/100)
+      :v;
+    return{buy:round(entry.buy),stop:round(entry.stop),target:round(entry.target)};
+  };
+
   const refreshPrice=async(ticker)=>{
     setPriceLoading(p=>({...p,[ticker]:true}));
     try{
       const{price,change,pct}=await fetchYahooPrice(ticker);
-      setStocks(p=>p.map(s=>s.ticker===ticker?{...s,price,change,pct}:s));
+      const isJP=/^\d{4}$/.test(ticker);
+      setStocks(p=>p.map(s=>{
+        if(s.ticker!==ticker) return s;
+        const entry=calcUpdatedEntry(s.entry,s.price,price,isJP);
+        return{...s,price,change,pct,entry};
+      }));
       setDetail(prev=>prev?.ticker===ticker?{...prev,price,change,pct}:prev);
       showToast(`✓ ${ticker} ¥${price.toLocaleString()} に更新しました`);
     }catch(e){
@@ -877,7 +929,9 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
     for(const s of stocks){
       try{
         const{price,change,pct}=await fetchYahooPrice(s.ticker);
-        setStocks(p=>p.map(st=>st.ticker===s.ticker?{...st,price,change,pct}:st));
+        const isJP=/^\d{4}$/.test(s.ticker);
+        const entry=calcUpdatedEntry(s.entry,s.price,price,isJP);
+        setStocks(p=>p.map(st=>st.ticker===s.ticker?{...st,price,change,pct,entry}:st));
         ok++;
       }catch{fail++;}
       await new Promise(r=>setTimeout(r,350)); // レート制限対策
@@ -933,7 +987,7 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
         </div>
         <div className="hdr-r">
           <div className="live"/>LIVE · 15分遅延
-          <button className="settings-btn" title={apiKey?'APIキー設定済（変更）':'APIキー未設定'} onClick={()=>{setApiKeyInput(apiKey);setShowApiModal(true);}}>⚙️</button>
+          <button className="settings-btn" title={apiKey?'APIキー設定済（変更）':'APIキー未設定'} onClick={()=>{setApiKeyInput(apiKey);setFinnhubKeyInput(finnhubKey);setShowApiModal(true);}}>⚙️</button>
           <div className={`key-dot ${apiKey?'set':'unset'}`} title={apiKey?'APIキー設定済':'APIキー未設定'}/>
         </div>
       </div>
@@ -1198,7 +1252,15 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
             <div className="period-row">
               {['1W','1M','3M','6M','1Y'].map(p=><button key={p} className={`per${period===p?' on':''}`} onClick={()=>setPeriod(p)}>{p}</button>)}
             </div>
-            <BigChart data={detail.hist} color={detail.pct>=0?'var(--green)':'var(--red)'}/>
+            {chartLoading
+              ?<div style={{height:145,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <div className="dots"><span/><span/><span/></div>
+              </div>
+              :<BigChart data={chartData??detail.hist} color={detail.pct>=0?'var(--green)':'var(--red)'}/>
+            }
+            {!finnhubKey&&<div style={{textAlign:'center',fontFamily:'var(--f-mo)',fontSize:9,color:'var(--t3)',marginTop:4,letterSpacing:1}}>
+              ⚙️ Finnhub APIキーを設定するとリアルチャートを表示
+            </div>}
           </div>
 
           {/* VERDICT — big buy/hold/sell */}
@@ -1324,6 +1386,28 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
             <div className="api-btns">
               <button className="api-save-btn" onClick={saveApiKey}>保存する</button>
               <button className="api-clear-btn" onClick={()=>{localStorage.removeItem('infrasage_apikey');setApiKey('');setApiKeyInput('');setShowApiModal(false);showToast('APIキーをクリアしました');}}>クリア</button>
+            </div>
+            <div style={{marginTop:18,borderTop:'1px solid var(--bd)',paddingTop:14}}>
+              <div style={{fontFamily:'var(--f-mo)',fontSize:11,color:'var(--cyan)',letterSpacing:2,marginBottom:6}}>📈 FINNHUB API KEY（株価チャート）</div>
+              <div className="api-modal-sub" style={{fontSize:11,marginBottom:8}}>
+                詳細画面のチャートに実際の株価データを表示します。<br/>
+                <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" style={{color:'var(--cyan)'}}>finnhub.io</a> で無料取得できます。
+              </div>
+              <input className="api-key-inp" type="password" placeholder="Finnhub APIキー (例: d1xxxxxx)"
+                value={finnhubKeyInput} onChange={e=>setFinnhubKeyInput(e.target.value)}/>
+              <div className="api-btns">
+                <button className="api-save-btn" onClick={()=>{
+                  const k=finnhubKeyInput.trim();
+                  localStorage.setItem('infrasage_finnhub_key',k);
+                  setFinnhubKey(k);
+                  showToast(k?'✓ Finnhub APIキーを保存しました':'Finnhub APIキーをクリアしました');
+                }}>保存する</button>
+                <button className="api-clear-btn" onClick={()=>{
+                  localStorage.removeItem('infrasage_finnhub_key');
+                  setFinnhubKey('');setFinnhubKeyInput('');
+                  showToast('Finnhub APIキーをクリアしました');
+                }}>クリア</button>
+              </div>
             </div>
           </div>
         </div>
