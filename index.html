@@ -128,8 +128,8 @@ body{font-family:var(--f-jp);color:var(--text);overflow:hidden}
 .c-ch{font-family:var(--f-mo);font-size:11px}
 .c-ch.up{color:var(--green)}.c-ch.dn{color:var(--red)}
 
-.spark-w{height:28px;margin-bottom:8px}
-svg.spark{width:100%;height:100%}
+.spark-w{margin-bottom:8px}
+svg.spark{width:100%;height:auto;display:block}
 
 .c-meta{display:flex;gap:12px}
 .cm{font-size:10px;color:var(--t3);font-family:var(--f-mo)}
@@ -160,8 +160,6 @@ svg.spark{width:100%;height:100%}
 .per{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:6px 0;font-family:var(--f-mo);font-size:10px;color:var(--t3);cursor:pointer;transition:all .15s;letter-spacing:1px}
 .per.on{background:var(--cyan-d);border-color:rgba(0,200,212,.4);color:var(--cyan)}
 svg.big-chart{width:100%;height:auto;display:block}
-.spark-wrap{display:flex;flex-direction:column;gap:0;width:100%}
-.spark-dates{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(104,136,168,0.55);padding:1px 1px 0;line-height:1}
 
 /* VERDICT BOX (big buy/hold/sell in detail) */
 .verdict{margin:0 18px 14px;border-radius:14px;padding:18px}
@@ -526,32 +524,80 @@ async function callClaude(prompt){
   return d.content?.[0]?.text||'分析を取得できませんでした。';
 }
 
-/* ─── SPARKLINE ─── */
-function Spark({data,timestamps,color}){
+/* ─── SPARKLINE（縦軸・横軸付き） ─── */
+function Spark({data,timestamps,color,ticker}){
   if(!data||data.length<2) return null;
+  const W=320,H=58,ml=32,mr=4,mt=4,mb=15;
+  const pw=W-ml-mr, ph=H-mt-mb;
   const mn=Math.min(...data),mx=Math.max(...data),r=mx-mn||1;
-  const pts=data.map((v,i)=>`${(i/(data.length-1))*100},${28-((v-mn)/r)*24-2}`).join(' ');
-  const fmt=ts=>{const d=new Date(ts*1000);return `${d.getMonth()+1}/${d.getDate()}`;};
-  const hasTs=timestamps&&timestamps.length>1;
-  return <div className="spark-wrap">
-    <svg viewBox="0 0 100 28" className="spark" preserveAspectRatio="none">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-    {hasTs&&<div className="spark-dates">
-      <span>{fmt(timestamps[0])}</span>
-      <span>{fmt(timestamps[timestamps.length-1])}</span>
-    </div>}
-  </div>;
+  const spx=i=>(i/(data.length-1))*pw+ml;
+  const spy=v=>mt+ph-((v-mn)/r)*ph;
+
+  // タイムスタンプがない場合は1ヶ月前〜今日で均等生成
+  const ts=timestamps||(()=>{
+    const now=Date.now();
+    return Array.from({length:data.length},(_,i)=>
+      Math.floor((now-(data.length-1-i)*30/data.length*86400000)/1000));
+  })();
+
+  const isJP=mx>500;
+  const fmtP=v=>{
+    if(isJP) return mx>=10000?(v/1000).toFixed(1)+'k':Math.round(v).toLocaleString();
+    return v>=100?Math.round(v).toString():v.toFixed(1);
+  };
+  const fmtD=t=>{const d=new Date(t*1000);return `${d.getMonth()+1}/${d.getDate()}`;};
+
+  const pts=data.map((v,i)=>`${spx(i)},${spy(v)}`).join(' ');
+  const area=`${pts} ${spx(data.length-1)},${mt+ph} ${spx(0)},${mt+ph}`;
+  const gid=`sg_${ticker||'x'}`;
+
+  return <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'auto',display:'block'}} preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={color} stopOpacity="0.2"/>
+        <stop offset="100%" stopColor={color} stopOpacity="0.01"/>
+      </linearGradient>
+    </defs>
+    {/* グリッド線（最安値・最高値） */}
+    {[mn,mx].map((v,i)=>(
+      <line key={i} x1={ml} y1={spy(v)} x2={W-mr} y2={spy(v)}
+        stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2,3"/>
+    ))}
+    {/* Y軸線 */}
+    <line x1={ml} y1={mt} x2={ml} y2={mt+ph} stroke="rgba(255,255,255,0.1)" strokeWidth="0.6"/>
+    {/* X軸線 */}
+    <line x1={ml} y1={mt+ph} x2={W-mr} y2={mt+ph} stroke="rgba(255,255,255,0.1)" strokeWidth="0.6"/>
+    {/* エリア塗り */}
+    <polygon points={area} fill={`url(#${gid})`}/>
+    {/* ライン */}
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* Y軸ラベル（最高値・最安値） */}
+    <text x={ml-3} y={spy(mx)+3} textAnchor="end" fontSize="7.5" fill="rgba(104,136,168,0.85)" fontFamily="IBM Plex Mono,monospace">{fmtP(mx)}</text>
+    <text x={ml-3} y={spy(mn)+3} textAnchor="end" fontSize="7.5" fill="rgba(104,136,168,0.85)" fontFamily="IBM Plex Mono,monospace">{fmtP(mn)}</text>
+    {/* X軸ラベル（開始日・終了日） */}
+    <text x={spx(0)} y={H-2} textAnchor="start" fontSize="7.5" fill="rgba(104,136,168,0.75)" fontFamily="IBM Plex Mono,monospace">{fmtD(ts[0])}</text>
+    <text x={spx(data.length-1)} y={H-2} textAnchor="end" fontSize="7.5" fill="rgba(104,136,168,0.75)" fontFamily="IBM Plex Mono,monospace">{fmtD(ts[ts.length-1])}</text>
+  </svg>;
 }
 
 /* ─── BIG CHART WITH AXES ─── */
 function BigChart({closes,timestamps,color,period}){
   if(!closes||closes.length<2) return null;
-  const W=400,H=165,ml=48,mr=6,mt=6,mb=22;
+  const W=400,H=170,ml=50,mr=6,mt=6,mb=22;
   const pw=W-ml-mr, ph=H-mt-mb;
   const mn=Math.min(...closes),mx=Math.max(...closes),r=mx-mn||1;
   const px=i=>(i/(closes.length-1))*pw+ml;
   const py=v=>mt+ph-((v-mn)/r)*ph;
+
+  // タイムスタンプがない場合は period の幅で均等生成
+  const periodDays={'1W':7,'1M':30,'3M':90,'6M':180,'1Y':365};
+  const ts=timestamps||(()=>{
+    const days=periodDays[period]||30;
+    const now=Date.now();
+    const start=now-days*86400000;
+    return Array.from({length:closes.length},(_,i)=>
+      Math.floor((start+i*(now-start)/(closes.length-1))/1000));
+  })();
 
   // Y軸: 4ティック
   const yTicks=[mn, mn+r/3, mn+r*2/3, mx];
@@ -565,52 +611,53 @@ function BigChart({closes,timestamps,color,period}){
     return v>=100?Math.round(v).toString():v.toFixed(2);
   };
 
-  // X軸: 期間に合わせたラベル
+  // X軸: 期間に合わせたラベル（ts は常に存在）
   const thisYear=new Date().getFullYear();
-  const fmtDate=(ts,p,prevTs)=>{
-    const d=new Date(ts*1000);
+  const fmtDate=(t,p,prevT)=>{
+    const d=new Date(t*1000);
     const y=d.getFullYear(), m=d.getMonth()+1, day=d.getDate();
-    const yearChanged=prevTs&&new Date(prevTs*1000).getFullYear()!==y;
+    const yearChanged=prevT&&new Date(prevT*1000).getFullYear()!==y;
     const yPrefix=yearChanged||y!==thisYear?`'${String(y).slice(2)}/`:'';
     if(p==='1Y'||p==='6M') return `${yPrefix}${m}月`;
     return `${yPrefix}${m}/${day}`;
   };
 
   let xIndices=[];
-  if(timestamps&&timestamps.length>1){
-    const n=closes.length;
-    if(period==='1W'){
-      // 全点（最大7日）
-      xIndices=Array.from({length:n},(_,i)=>i);
-    } else if(period==='1M'){
-      // 週次境界（月曜 or 5日おき）
-      xIndices=[0];
-      for(let i=1;i<n-1;i++){
-        const dow=new Date(timestamps[i]*1000).getDay();
-        if(dow===1||dow===0) xIndices.push(i);
-      }
-      xIndices.push(n-1);
-    } else if(period==='3M'){
-      // 2週おき境界
-      const step=Math.max(1,Math.round(n/7));
-      for(let i=0;i<n;i+=step) xIndices.push(i);
-      if(xIndices[xIndices.length-1]!==n-1) xIndices.push(n-1);
-    } else if(period==='6M'||period==='1Y'){
-      // 月が変わるタイミング
-      let lastM=-1;
-      timestamps.forEach((ts,i)=>{
-        const m=new Date(ts*1000).getMonth();
-        if(m!==lastM){xIndices.push(i);lastM=m;}
-      });
-      if(xIndices[xIndices.length-1]!==n-1) xIndices.push(n-1);
+  const n=closes.length;
+  if(period==='1W'){
+    xIndices=Array.from({length:n},(_,i)=>i);
+  } else if(period==='1M'){
+    xIndices=[0];
+    for(let i=1;i<n-1;i++){
+      const dow=new Date(ts[i]*1000).getDay();
+      if(dow===1||dow===0) xIndices.push(i);
     }
-    // 重複除去、最大10点に間引き
-    xIndices=[...new Set(xIndices)];
-    if(xIndices.length>10){
-      const step=Math.ceil(xIndices.length/9);
-      xIndices=xIndices.filter((_,i)=>i%step===0||i===xIndices.length-1);
+    xIndices.push(n-1);
+    // 週境界が少ない場合は均等5点にフォールバック
+    if(xIndices.length<3){
+      xIndices=Array.from({length:5},(_,i)=>Math.round(i*(n-1)/4));
     }
+  } else if(period==='3M'){
+    const step=Math.max(1,Math.round(n/7));
+    for(let i=0;i<n;i+=step) xIndices.push(i);
+    if(xIndices[xIndices.length-1]!==n-1) xIndices.push(n-1);
+  } else if(period==='6M'||period==='1Y'){
+    let lastM=-1;
+    ts.forEach((t,i)=>{
+      const m=new Date(t*1000).getMonth();
+      if(m!==lastM){xIndices.push(i);lastM=m;}
+    });
+    if(xIndices[xIndices.length-1]!==n-1) xIndices.push(n-1);
   }
+  // 重複除去・最大10点に間引き
+  xIndices=[...new Set(xIndices)];
+  if(xIndices.length>10){
+    const step=Math.ceil(xIndices.length/9);
+    xIndices=xIndices.filter((_,i)=>i%step===0||i===xIndices.length-1);
+  }
+  // 最低でも始点・終点は必ず含める
+  if(!xIndices.includes(0)) xIndices.unshift(0);
+  if(!xIndices.includes(n-1)) xIndices.push(n-1);
 
   const pts=closes.map((v,i)=>`${px(i)},${py(v)}`).join(' ');
   const area=`${pts} ${px(closes.length-1)},${mt+ph} ${px(0)},${mt+ph}`;
@@ -645,11 +692,11 @@ function BigChart({closes,timestamps,color,period}){
     {/* X軸ラベル */}
     {xIndices.map((idx,i)=>{
       const isFirst=i===0, isLast=i===xIndices.length-1;
-      const prevTs=i>0?timestamps[xIndices[i-1]]:null;
-      return <text key={i} x={px(idx)} y={H-5}
+      const prevT=i>0?ts[xIndices[i-1]]:null;
+      return <text key={i} x={px(idx)} y={H-4}
         textAnchor={isFirst?'start':isLast?'end':'middle'}
         fontSize="9.5" fill="rgba(104,136,168,0.8)" fontFamily="IBM Plex Mono,monospace">
-        {fmtDate(timestamps[idx],period,prevTs)}
+        {fmtDate(ts[idx],period,prevT)}
       </text>;
     })}
     {/* 最新値ドット */}
@@ -731,6 +778,39 @@ async function fetchYahooPrice(ticker){
   throw lastErr||new Error('取得失敗');
 }
 
+/* ─── YAHOO FINANCE 株価履歴取得 ─── */
+async function fetchYahooCandles(ticker,period){
+  const isJP=/^\d{4}$/.test(ticker);
+  const symbol=isJP?`${ticker}.T`:ticker;
+  const rangeMap={'1W':'5d','1M':'1mo','3M':'3mo','6M':'6mo','1Y':'1y'};
+  const intervalMap={'1W':'1d','1M':'1d','3M':'1d','6M':'1wk','1Y':'1wk'};
+  const range=rangeMap[period]||'3mo';
+  const interval=intervalMap[period]||'1d';
+  const yahooUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+  const attempts=[
+    `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+    yahooUrl,
+  ];
+  let lastErr;
+  for(const url of attempts){
+    try{
+      const r=await fetch(url,{headers:{Accept:'application/json'}});
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d=await r.json();
+      const result=d.chart?.result?.[0];
+      if(!result?.timestamp||!result?.indicators?.quote?.[0]?.close) throw new Error('データなし');
+      // null を除いて close と timestamp を対応させる
+      const rawClose=result.indicators.quote[0].close;
+      const rawTs=result.timestamp;
+      const pairs=rawTs.map((t,i)=>({t,c:rawClose[i]})).filter(p=>p.c!=null);
+      if(pairs.length<2) throw new Error('データ不足');
+      return{closes:pairs.map(p=>p.c), timestamps:pairs.map(p=>p.t)};
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('取得失敗');
+}
+
 /* ─────────────── APP ─────────────── */
 function App(){
   const [tab,setTab]=useState('watch');
@@ -767,40 +847,46 @@ function App(){
   const [sparklineData,setSparklineData]=useState({}); // {ticker:{closes,timestamps}}
   const sparklineFetched=useRef(new Set()); // "ticker|key" 取得済み管理
 
-  // Finnhub チャートデータ取得（detail/period/finnhubKey 変化時）
+  // チャートデータ取得（detail/period 変化時）— Yahoo Finance 標準、Finnhub キーあれば優先
   useEffect(()=>{
-    if(!detail||!finnhubKey){setChartData(null);setChartLoading(false);return;}
+    if(!detail){setChartData(null);setChartLoading(false);return;}
     let cancelled=false;
     setChartLoading(true);
     setChartData(null);
-    fetchFinnhubCandles(detail.ticker,period,finnhubKey)
+    const load=finnhubKey
+      ?fetchFinnhubCandles(detail.ticker,period,finnhubKey)
+          .catch(()=>fetchYahooCandles(detail.ticker,period))  // Finnhub失敗時はYahooへフォールバック
+      :fetchYahooCandles(detail.ticker,period);
+    load
       .then(data=>{if(!cancelled)setChartData(data);})
       .catch(()=>{if(!cancelled)setChartData(null);})
       .finally(()=>{if(!cancelled)setChartLoading(false);});
     return()=>{cancelled=true;};
   },[detail?.ticker,period,finnhubKey]);
 
-  // Finnhub スパークライン取得（ウォッチリスト用・1M日足）
+  // スパークライン取得（ウォッチリスト用・1M）— Yahoo Finance 標準、Finnhub キーあれば優先
   const tickerList=stocks.map(s=>s.ticker).join(',');
+  const sparkCacheKey=finnhubKey||'__yahoo__';
   useEffect(()=>{
-    if(!finnhubKey) return;
     let cancelled=false;
-    const toFetch=stocks.filter(s=>!sparklineFetched.current.has(s.ticker+'|'+finnhubKey));
+    const toFetch=stocks.filter(s=>!sparklineFetched.current.has(s.ticker+'|'+sparkCacheKey));
     toFetch.forEach((s,i)=>{
       setTimeout(()=>{
         if(cancelled) return;
-        fetchFinnhubCandles(s.ticker,'1M',finnhubKey)
-          .then(data=>{
-            if(!cancelled){
-              sparklineFetched.current.add(s.ticker+'|'+finnhubKey);
-              setSparklineData(prev=>({...prev,[s.ticker]:data}));
-            }
-          })
-          .catch(()=>{});
-      }, i*300); // 1銘柄300msずつずらしてレート制限対策
+        const load=finnhubKey
+          ?fetchFinnhubCandles(s.ticker,'1M',finnhubKey)
+              .catch(()=>fetchYahooCandles(s.ticker,'1M'))
+          :fetchYahooCandles(s.ticker,'1M');
+        load.then(data=>{
+          if(!cancelled){
+            sparklineFetched.current.add(s.ticker+'|'+sparkCacheKey);
+            setSparklineData(prev=>({...prev,[s.ticker]:data}));
+          }
+        }).catch(()=>{});
+      }, i*400); // CORS プロキシ負荷分散のため間隔を確保
     });
     return()=>{cancelled=true;};
-  },[tickerList,finnhubKey]);
+  },[tickerList,sparkCacheKey]);
 
   // Persist to localStorage
   useEffect(()=>{try{localStorage.setItem('infrasage_stocks',JSON.stringify(stocks));}catch{}},[stocks]);
@@ -1210,7 +1296,8 @@ ${isJP?`※証券コード${ticker}に対応する正確な企業名を必ず返
                     <Spark
                       data={sparklineData[s.ticker]?.closes||s.hist}
                       timestamps={sparklineData[s.ticker]?.timestamps}
-                      color={s.pct>=0?'var(--green)':'var(--red)'}/>
+                      color={s.pct>=0?'var(--green)':'var(--red)'}
+                      ticker={s.ticker}/>
                   </div>
 
                   <div className="c-meta">
